@@ -41,7 +41,9 @@
                     <label for="loginPassword">Senha</label>
                     <input type="password" id="loginPassword" required placeholder="Sua senha">
                 </div>
-                
+                <button type="button" class="btn btn-google btn-block" onclick="authSystem.loginWithGoogle()">
+    <span>🔗 Entrar com Google</span>
+</button>
                 <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
                     <span class="btn-text">Entrar</span>
                     <div class="btn-loading hidden">Carregando...</div>
@@ -985,4 +987,5 @@
     <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
