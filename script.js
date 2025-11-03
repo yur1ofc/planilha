@@ -1865,3 +1865,141 @@ window.mostrarDados = function() {
     console.log("Dados atuais:", dadosUsuario);
     return dadosUsuario;
 }
+
+// Funções de salvamento e carregamento ATUALIZADAS
+function salvarDados() {
+    console.log("Salvando dados...");
+    try {
+        // Salvar no Firebase (se usuário estiver logado)
+        if (window.authSystem && window.authSystem.user) {
+            window.salvarDadosFirebase();
+        } else {
+            // Salvar apenas localmente se não estiver logado
+            localStorage.setItem('planilhaFinanceira', JSON.stringify(dadosUsuario));
+            console.log("Dados salvos localmente");
+        }
+    } catch (e) {
+        console.error("Erro ao salvar dados:", e);
+    }
+}
+
+function carregarDados() {
+    console.log("Carregando dados...");
+    
+    // Se usuário está logado, os dados serão carregados automaticamente pelo authSystem
+    if (window.authSystem && window.authSystem.user) {
+        console.log("Usuário logado - dados serão carregados do Firebase");
+        return;
+    }
+    
+    // Se não está logado, carregar do localStorage
+    try {
+        const dadosSalvos = localStorage.getItem('planilhaFinanceira');
+        if (dadosSalvos) {
+            const dadosParseados = JSON.parse(dadosSalvos);
+            // Mesclar dados salvos com estrutura padrão
+            window.dadosUsuario = {
+                ...window.dadosUsuario,
+                ...dadosParseados,
+                // Garantir que arrays existam
+                metas: dadosParseados.metas || [],
+                categorias: dadosParseados.categorias || [
+                    { id: 1, nome: "Salário", tipo: "receita", cor: "#2ecc71" },
+                    { id: 2, nome: "Freelance", tipo: "receita", cor: "#3498db" },
+                    { id: 3, nome: "Moradia", tipo: "despesa", cor: "#e74c3c" },
+                    { id: 4, nome: "Alimentação", tipo: "despesa", cor: "#f39c12" }
+                ],
+                preferencias: dadosParseados.preferencias || { modoEscuro: false },
+                automações: dadosParseados.automações || [],
+                backup: dadosParseados.backup || {
+                    ultimoBackup: null,
+                    proximoBackup: null
+                }
+            };
+            console.log("Dados carregados do localStorage:", window.dadosUsuario);
+        } else {
+            console.log("Nenhum dado salvo encontrado, usando dados padrão");
+        }
+    } catch (e) {
+        console.error("Erro ao carregar dados:", e);
+    }
+}
+
+// Modifique a inicialização para verificar autenticação
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Página carregada - Iniciando configuração...");
+    
+    // Inicializar dados padrão (serão sobrescritos se usuário estiver logado)
+    window.dadosUsuario = {
+        perfil: {},
+        receitas: [],
+        despesas: [],
+        dividas: [],
+        investimentos: [],
+        metas: [],
+        categorias: [
+            { id: 1, nome: "Salário", tipo: "receita", cor: "#2ecc71" },
+            { id: 2, nome: "Freelance", tipo: "receita", cor: "#3498db" },
+            { id: 3, nome: "Moradia", tipo: "despesa", cor: "#e74c3c" },
+            { id: 4, nome: "Alimentação", tipo: "despesa", cor: "#f39c12" },
+            { id: 5, nome: "Transporte", tipo: "despesa", cor: "#9b59b6" }
+        ],
+        questionario: {},
+        historicoPatrimonial: [],
+        alertas: [],
+        preferencias: {
+            modoEscuro: false
+        },
+        automações: [],
+        backup: {
+            ultimoBackup: null,
+            proximoBackup: null
+        }
+    };
+    
+    // Carregar dados do localStorage (apenas se não estiver logado)
+    carregarDados();
+    
+    // O restante da sua inicialização...
+    // Configurar event listeners para os formulários
+    document.getElementById('formReceita').addEventListener('submit', salvarReceita);
+    document.getElementById('formDespesa').addEventListener('submit', salvarDespesa);
+    document.getElementById('formDivida').addEventListener('submit', salvarDivida);
+    document.getElementById('formInvestimento').addEventListener('submit', salvarInvestimento);
+    document.getElementById('formMeta').addEventListener('submit', function(e) {
+        e.preventDefault();
+        salvarMeta();
+    });
+    document.getElementById('formCategoria').addEventListener('submit', function(e) {
+        e.preventDefault();
+        salvarCategoria();
+    });
+    
+    // Configurar tema
+    document.getElementById('themeToggle').addEventListener('click', toggleModoEscuro);
+    
+    // Aplicar tema salvo
+    aplicarTema();
+    
+    // Definir data padrão para hoje nos modais
+    const hoje = new Date().toISOString().split('T')[0];
+    if (document.getElementById('investimentoData')) {
+        document.getElementById('investimentoData').value = hoje;
+    }
+    
+    // Inicializar histórico se não existir
+    if (!window.dadosUsuario.historicoPatrimonial || window.dadosUsuario.historicoPatrimonial.length === 0) {
+        inicializarHistoricoPatrimonial();
+    }
+    
+    // Inicializar alertas
+    verificarAlertas();
+    
+    // Inicializar analytics
+    inicializarAnalytics();
+    
+    // Carregar conteúdo educativo
+    carregarConteudoEducativo();
+    
+    console.log("Configuração concluída");
+});
