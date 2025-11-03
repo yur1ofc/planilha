@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilha Financeira Completa</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Planilha Financeira Completa</h1>
+            <p>Controle total das suas finanças em um só lugar</p>
+            <button class="theme-toggle" id="themeToggle">🌙</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <!-- Questionário Inicial -->
+        <div class="section active" id="section1">
+            <h2>Perfil Financeiro</h2>
+            <p>Vamos começar conhecendo melhor sua situação financeira atual.</p>
+            
+            <div class="question-group">
+                <div class="question">Qual sua situação habitacional?</div>
+                <div class="options">
+                    <div class="option" onclick="selectOption(this)">Mora sozinho(a)</div>
+                    <div class="option" onclick="selectOption(this)">Mora com os pais/familiares</div>
+                    <div class="option" onclick="selectOption(this)">Mora com parceiro(a)/amigos</div>
+                    <div class="option" onclick="selectOption(this)">Outro</div>
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <div></div>
+                <button class="btn btn-primary" onclick="nextSection(1)">Próximo</button>
+            </div>
+        </div>
+
+        <div class="section" id="section2">
+            <h2>Perfil Financeiro</h2>
+            
+            <div class="question-group">
+                <div class="question">Qual sua faixa etária?</div>
+                <div class="options">
+                    <div class="option" onclick="selectOption(this)">Menor de 18 anos</div>
+                    <div class="option" onclick="selectOption(this)">18-25 anos</div>
+                    <div class="option" onclick="selectOption(this)">26-35 anos</div>
+                    <div class="option" onclick="selectOption(this)">36-50 anos</div>
+                    <div class="option" onclick="selectOption(this)">Acima de 50 anos</div>
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevSection(2)">Anterior</button>
+                <button class="btn btn-primary" onclick="nextSection(2)">Próximo</button>
+            </div>
+        </div>
+
+        <div class="section" id="section3">
+            <h2>Perfil Financeiro</h2>
+            
+            <div class="question-group">
+                <div class="question">Qual seu principal objetivo financeiro?</div>
+                <div class="options">
+                    <div class="option" onclick="selectOption(this)">Controlar gastos do dia a dia</div>
+                    <div class="option" onclick="selectOption(this)">Economizar para uma meta específica</div>
+                    <div class="option" onclick="selectOption(this)">Quitar dívidas</div>
+                    <div class="option" onclick="selectOption(this)">Investir para o futuro</div>
+                    <div class="option" onclick="selectOption(this)">Planejar aposentadoria</div>
+                    <div class="option" onclick="selectOption(this)">Outro</div>
+                </div>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevSection(3)">Anterior</button>
+                <button class="btn btn-primary" onclick="nextSection(3)">Próximo</button>
+            </div>
+        </div>
+
+        <div class="section" id="section4">
+            <h2>Receitas</h2>
+            <p>Informe todas as suas fontes de renda.</p>
+            
+            <div class="form-group">
+                <label for="salario">Salário principal:</label>
+                <input type="number" id="salario" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="salarioSecundario">Salário secundário (se aplicável):</label>
+                <input type="number" id="salarioSecundario" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="freelance">Freelance/autônomo:</label>
+                <input type="number" id="freelance" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="aluguelRecebido">Aluguéis recebidos:</label>
+                <input type="number" id="aluguelRecebido" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="outrasReceitas">Outras receitas:</label>
+                <input type="number" id="outrasReceitas" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="summary-card">
+                <h3>Total de Receitas</h3>
+                <div class="summary-value" id="totalReceitas">R$ 0,00</div>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevSection(4)">Anterior</button>
+                <button class="btn btn-primary" onclick="nextSection(4)">Próximo</button>
+            </div>
+        </div>
+
+        <div class="section" id="section5">
+            <h2>Despesas Fixas</h2>
+            <p>Informe todos os seus gastos mensais fixos.</p>
+            
+            <h3>Moradia</h3>
+            <div class="form-group">
+                <label for="aluguel">Aluguel/Financiamento:</label>
+                <input type="number" id="aluguel" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="condominio">Condomínio:</label>
+                <input type="number" id="condominio" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="agua">Água:</label>
+                <input type="number" id="agua" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="luz">Luz:</label>
+                <input type="number" id="luz" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="internet">Internet:</label>
+                <input type="number" id="internet" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <h3>Transporte</h3>
+            <div class="form-group">
+                <label for="combustivel">Combustível:</label>
+                <input type="number" id="combustivel" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="form-group">
+                <label for="transportePublico">Transporte público:</label>
+                <input type="number" id="transportePublico" placeholder="R$ 0,00" onchange="calcularTotais()">
+            </div>
+            
+            <div class="summary-card">
+                <h3>Total de Despesas Fixas</h3>
+                <div class="summary-value" id="totalDespesas">R$ 0,00</div>
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevSection(5)">Anterior</button>
+                <button class="btn btn-primary" onclick="nextSection(5)">Próximo</button>
+            </div>
+        </div>
+
+        <div class="section" id="section6">
+            <h2>Resumo e Análise</h2>
+            <p>Veja um resumo completo da sua situação financeira.</p>
+            
+            <div class="resumo-grid">
+                <div class="summary-card">
+                    <h3>Resumo Mensal</h3>
+                    <p>Total Receitas: <span class="summary-value positive" id="resumoReceitas">R$ 0,00</span></p>
+                    <p>Total Despesas: <span class="summary-value negative" id="resumoDespesas">R$ 0,00</span></p>
+                    <p>Total Parcelas Dívidas: <span class="summary-value negative" id="resumoDividas">R$ 0,00</span></p>
+                    <p>Total Disponível: <span class="summary-value" id="resumoDisponivel">R$ 0,00</span></p>
+                    <p>Valor para Investir: <span class="summary-value positive" id="resumoInvestir">R$ 0,00</span></p>
+                    <p>Saldo Final: <span class="summary-value" id="resumoSaldo">R$ 0,00</span></p>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="gastosChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="alert">
+                <strong>Recomendação:</strong> Tente economizar pelo menos 20% da sua renda para investimentos.
+            </div>
+            
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevSection(6)">Anterior</button>
+                <button class="btn btn-primary" onclick="finalizarQuestionario()">Finalizar e Ver Dashboard</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Interativo -->
+        <div class="dashboard" id="dashboard">
+            <div class="dashboard-header">
+                <h2>Dashboard Financeiro</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="reiniciarQuestionario()">Editar Questionário</button>
+                    <button class="btn" onclick="exportarDados()">Exportar Dados</button>
+                    <button class="btn btn-primary" onclick="gerarRelatorioPDF()">Gerar Relatório PDF</button>
+                </div>
+            </div>
+
+            <!-- Assistente Financeiro -->
+            <div class="assistente-section">
+                <div class="assistente-header">
+                    <div class="assistente-avatar">$</div>
+                    <div>
+                        <h3>Assistente Financeiro</h3>
+                        <p>Suas dicas personalizadas para economizar e investir</p>
+                    </div>
+                </div>
+                <div class="assistente-mensagens" id="assistenteMensagens">
+                    <!-- Mensagens serão inseridas aqui -->
+                </div>
+            </div>
+
+            <!-- Alertas Inteligentes -->
+            <div class="alertas-section">
+                <div class="assistente-header">
+                    <div class="assistente-avatar" style="background: var(--danger-color);">!</div>
+                    <div>
+                        <h3>Alertas Inteligentes</h3>
+                        <p>Notificações importantes sobre suas finanças</p>
+                    </div>
+                </div>
+                <div id="alertasContainer">
+                    <!-- Alertas serão inseridos aqui -->
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Receitas Totais</h3>
+                    <div class="stat-value positive" id="dashboardReceitas">R$ 0,00</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Despesas Totais</h3>
+                    <div class="stat-value negative" id="dashboardDespesas">R$ 0,00</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Saldo Mensal</h3>
+                    <div class="stat-value" id="dashboardSaldo">R$ 0,00</div>
+                </div>
+                <div class="stat-card positive">
+                    <h3>Total Investido</h3>
+                    <div class="stat-value" id="dashboardInvestimentos">R$ 0,00</div>
+                    <div class="stat-subvalue" id="dashboardRendimento">Rendimento mensal: R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="dashboard-nav">
+                <button class="tab-button active" onclick="showDashboardTab('visao-geral')">Visão Geral</button>
+                <button class="tab-button" onclick="showDashboardTab('receitas')">Receitas</button>
+                <button class="tab-button" onclick="showDashboardTab('despesas')">Despesas</button>
+                <button class="tab-button" onclick="showDashboardTab('dividas')">Dívidas</button>
+                <button class="tab-button" onclick="showDashboardTab('investimentos')">Investimentos</button>
+                <button class="tab-button" onclick="showDashboardTab('metas')">Metas</button>
+                <button class="tab-button" onclick="showDashboardTab('categorias')">Categorias</button>
+                <button class="tab-button" onclick="showDashboardTab('backup')">Backup</button>
+                <button class="tab-button" onclick="showDashboardTab('automacoes')">Automações</button>
+                <button class="tab-button" onclick="showDashboardTab('analytics')">Analytics</button>
+                <button class="tab-button" onclick="showDashboardTab('relatorios')">Relatórios</button>
+            </div>
+
+            <!-- Visão Geral -->
+            <div class="dashboard-section active" id="visao-geral">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Distribuição de Gastos</h3>
+                        <canvas id="distribuicaoGastosChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Evolução Patrimonial</h3>
+                        <canvas id="evolucaoPatrimonialChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="data-table">
+                    <h3>Resumo Financeiro</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>% da Renda</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resumoFinanceiroTable">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Receitas -->
+            <div class="dashboard-section" id="receitas">
+                <h3>Gerenciar Receitas</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalReceita()">+ Nova Receita</button>
+                </div>
+                <div class="data-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receitasTable">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Despesas -->
+            <div class="dashboard-section" id="despesas">
+                <h3>Gerenciar Despesas</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalDespesa()">+ Nova Despesa</button>
+                </div>
+                <div class="data-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Data</th>
+                                <th>Recorrente</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="despesasTable">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Dívidas -->
+            <div class="dashboard-section" id="dividas">
+                <h3>Gerenciar Dívidas</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalDivida()">+ Nova Dívida</button>
+                </div>
+                <div class="data-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor Total</th>
+                                <th>Valor Parcela</th>
+                                <th>Parcelas</th>
+                                <th>Taxa Juros</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dividasDashboardTable">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Investimentos -->
+            <div class="dashboard-section" id="investimentos">
+                <h3>Gerenciar Investimentos</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalInvestimento()">+ Novo Investimento</button>
+                </div>
+                <div class="data-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor Investido</th>
+                                <th>Valor Atual</th>
+                                <th>Tipo</th>
+                                <th>Rentabilidade</th>
+                                <th>Rendimento Total</th>
+                                <th>Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="investimentosDashboardTable">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Metas -->
+            <div class="dashboard-section" id="metas">
+                <h3>Metas Financeiras</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalMeta()">+ Nova Meta</button>
+                </div>
+                <div id="metasContainer">
+                    <!-- Metas serão inseridas aqui -->
+                </div>
+                
+                <!-- Simulador de Metas -->
+                <div class="simulador-meta">
+                    <h4>🎯 Simulador de Meta</h4>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor da Meta</label>
+                            <input type="number" id="simuladorValor" placeholder="R$ 10.000">
+                        </div>
+                        <div class="form-group">
+                            <label>Prazo (meses)</label>
+                            <input type="number" id="simuladorPrazo" placeholder="12">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="calcularSimulacao()">Calcular</button>
+                    
+                    <div id="resultadoSimulacao" class="hidden">
+                        <p>Você precisa economizar: <strong id="valorMensal">R$ 0,00</strong> por mês</p>
+                        <p>Recomendação: <span id="recomendacaoSimulacao"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorias -->
+            <div class="dashboard-section" id="categorias">
+                <h3>Categorias Personalizadas</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="abrirModalCategoria()">+ Nova Categoria</button>
+                </div>
+                <div class="categorias-section">
+                    <div id="categoriasContainer">
+                        <!-- Categorias serão inseridas aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup & Sincronização -->
+            <div class="dashboard-section" id="backup">
+                <h3>Backup e Sincronização</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="fazerBackup()">🔄 Fazer Backup Agora</button>
+                    <button class="btn btn-secondary" onclick="restaurarBackup()">📥 Restaurar Backup</button>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Último Backup</h3>
+                        <div class="stat-value" id="ultimoBackup">Nunca</div>
+                        <div class="stat-subvalue">Backup automático a cada 24h</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Próximo Backup</h3>
+                        <div class="stat-value" id="proximoBackup">-</div>
+                        <div class="stat-subvalue">Automático</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automações Inteligentes -->
+            <div class="dashboard-section" id="automacoes">
+                <h3>Automações Financeiras</h3>
+                
+                <div class="automation-card">
+                    <h4>💡 Categorização Automática</h4>
+                    <p>Regras inteligentes para categorizar transações automaticamente</p>
+                    
+                    <div class="automation-rules" id="automationRules">
+                        <div class="rule-item">
+                            <strong>Se descrição contém "NETFLIX" → Categoria: "Streaming"</strong>
+                            <button class="btn btn-danger btn-sm">Remover</button>
+                        </div>
+                        <!-- Mais regras -->
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="abrirModalRegra()">+ Nova Regra</button>
+                </div>
+                
+                <div class="automation-card">
+                    <h4>💰 Transferências Automáticas</h4>
+                    <p>Configure transferências recorrentes para investimentos</p>
+                    <!-- Configurações de automação -->
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autoInvestimento">
+                            <label for="autoInvestimento">Transferir automaticamente 10% da renda para investimentos</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Avançados -->
+            <div class="dashboard-section" id="analytics">
+                <h3>Analytics Financeiros</h3>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h4>📊 Comparativo com Média do Mercado</h4>
+                        <canvas id="comparativoMercadoChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h4>📈 Projeção Patrimonial</h4>
+                        <canvas id="projecaoPatrimonialChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="kpi-grid">
+                    <div class="stat-card">
+                        <h3>ROI Mensal</h3>
+                        <div class="stat-value positive">+2.3%</div>
+                        <div class="stat-subvalue">vs +1.8% média mercado</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>Taxa de Poupança</h3>
+                        <div class="stat-value positive">25%</div>
+                        <div class="stat-subvalue">Recomendado: 20%</div>
+                    </div>
+                </div>
+                
+                <!-- Educação Financeira -->
+                <div class="assistente-section">
+                    <div class="assistente-header">
+                        <div class="assistente-avatar" style="background: var(--warning-color);">📚</div>
+                        <div>
+                            <h3>Educação Financeira</h3>
+                            <p>Conteúdos educativos para melhorar sua saúde financeira</p>
+                        </div>
+                    </div>
+                    <div id="educacaoContainer">
+                        <!-- Conteúdos educativos serão inseridos aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatórios -->
+            <div class="dashboard-section" id="relatorios">
+                <h3>Relatórios e Exportação</h3>
+                <div class="relatorios-section">
+                    <p>Gere relatórios detalhados sobre sua situação financeira</p>
+                    
+                    <div class="relatorio-options">
+                        <div class="relatorio-card" onclick="gerarRelatorioPDF('mensal')">
+                            <div class="relatorio-icon">📊</div>
+                            <h4>Relatório Mensal</h4>
+                            <p>Resumo completo do mês atual</p>
+                        </div>
+                        
+                        <div class="relatorio-card" onclick="gerarRelatorioPDF('anual')">
+                            <div class="relatorio-icon">📈</div>
+                            <h4>Relatório Anual</h4>
+                            <p>Visão geral do ano financeiro</p>
+                        </div>
+                        
+                        <div class="relatorio-card" onclick="gerarRelatorioPDF('investimentos')">
+                            <div class="relatorio-icon">💹</div>
+                            <h4>Relatório de Investimentos</h4>
+                            <p>Desempenho dos seus investimentos</p>
+                        </div>
+                        
+                        <div class="relatorio-card" onclick="gerarRelatorioPDF('metas')">
+                            <div class="relatorio-icon">🎯</div>
+                            <h4>Relatório de Metas</h4>
+                            <p>Progresso das suas metas financeiras</p>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="gerarRelatorioPDF('completo')">Gerar Relatório Completo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Receitas -->
+        <div class="modal" id="modalReceita">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalReceitaTitulo">Nova Receita</h3>
+                    <button class="close-modal" onclick="fecharModal('modalReceita')">&times;</button>
+                </div>
+                <form id="formReceita">
+                    <input type="hidden" id="receitaId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="receitaDescricao">Descrição *</label>
+                            <input type="text" id="receitaDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="receitaValor">Valor *</label>
+                            <input type="number" id="receitaValor" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="receitaCategoria">Categoria</label>
+                            <select id="receitaCategoria">
+                                <option value="Salário">Salário</option>
+                                <option value="Freelance">Freelance</option>
+                                <option value="Investimentos">Investimentos</option>
+                                <option value="Aluguel">Aluguel</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="receitaData">Data</label>
+                            <input type="date" id="receitaData">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="receitaObservacoes">Observações</label>
+                        <textarea id="receitaObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalReceita')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Receita</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Despesas -->
+        <div class="modal" id="modalDespesa">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalDespesaTitulo">Nova Despesa</h3>
+                    <button class="close-modal" onclick="fecharModal('modalDespesa')">&times;</button>
+                </div>
+                <form id="formDespesa">
+                    <input type="hidden" id="despesaId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="despesaDescricao">Descrição *</label>
+                            <input type="text" id="despesaDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="despesaValor">Valor *</label>
+                            <input type="number" id="despesaValor" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="despesaCategoria">Categoria *</label>
+                            <select id="despesaCategoria" required>
+                                <option value="">Selecione...</option>
+                                <option value="Moradia">Moradia</option>
+                                <option value="Alimentação">Alimentação</option>
+                                <option value="Transporte">Transporte</option>
+                                <option value="Saúde">Saúde</option>
+                                <option value="Educação">Educação</option>
+                                <option value="Lazer">Lazer</option>
+                                <option value="Vestuário">Vestuário</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="despesaData">Data</label>
+                            <input type="date" id="despesaData">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="despesaRecorrente">
+                            <label for="despesaRecorrente">Despesa Recorrente (mensal)</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="despesaObservacoes">Observações</label>
+                        <textarea id="despesaObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalDespesa')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Despesa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Dívidas -->
+        <div class="modal" id="modalDivida">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalDividaTitulo">Nova Dívida</h3>
+                    <button class="close-modal" onclick="fecharModal('modalDivida')">&times;</button>
+                </div>
+                <form id="formDivida">
+                    <input type="hidden" id="dividaId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dividaDescricao">Descrição *</label>
+                            <input type="text" id="dividaDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dividaValorTotal">Valor Total *</label>
+                            <input type="number" id="dividaValorTotal" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dividaValorParcela">Valor da Parcela *</label>
+                            <input type="number" id="dividaValorParcela" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dividaParcelas">Parcelas *</label>
+                            <input type="text" id="dividaParcelas" placeholder="Ex: 5/12" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dividaTaxaJuros">Taxa de Juros (%)</label>
+                            <input type="number" id="dividaTaxaJuros" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="dividaStatus">Status</label>
+                            <select id="dividaStatus">
+                                <option value="Pendente">Pendente</option>
+                                <option value="Paga">Paga</option>
+                                <option value="Atrasada">Atrasada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dividaObservacoes">Observações</label>
+                        <textarea id="dividaObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalDivida')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Dívida</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Investimentos -->
+        <div class="modal" id="modalInvestimento">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalInvestimentoTitulo">Novo Investimento</h3>
+                    <button class="close-modal" onclick="fecharModal('modalInvestimento')">&times;</button>
+                </div>
+                <form id="formInvestimento">
+                    <input type="hidden" id="investimentoId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="investimentoDescricao">Descrição *</label>
+                            <input type="text" id="investimentoDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="investimentoValor">Valor *</label>
+                            <input type="number" id="investimentoValor" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="investimentoTipo">Tipo *</label>
+                            <select id="investimentoTipo" required>
+                                <option value="">Selecione...</option>
+                                <option value="Poupança">Poupança</option>
+                                <option value="CDB">CDB</option>
+                                <option value="Tesouro Direto">Tesouro Direto</option>
+                                <option value="Ações">Ações</option>
+                                <option value="FII">Fundos Imobiliários</option>
+                                <option value="Previdência">Previdência</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="investimentoRentabilidade">Rentabilidade (% ao ano)</label>
+                            <input type="number" id="investimentoRentabilidade" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="investimentoData">Data do Investimento</label>
+                            <input type="date" id="investimentoData">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="investimentoObservacoes">Observações</label>
+                        <textarea id="investimentoObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalInvestimento')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Investimento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Metas -->
+        <div class="modal" id="modalMeta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalMetaTitulo">Nova Meta Financeira</h3>
+                    <button class="close-modal" onclick="fecharModal('modalMeta')">&times;</button>
+                </div>
+                <form id="formMeta">
+                    <input type="hidden" id="metaId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="metaDescricao">Descrição *</label>
+                            <input type="text" id="metaDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="metaValor">Valor Total *</label>
+                            <input type="number" id="metaValor" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="metaData">Data Limite</label>
+                            <input type="date" id="metaData">
+                        </div>
+                        <div class="form-group">
+                            <label for="metaCategoria">Categoria</label>
+                            <select id="metaCategoria">
+                                <option value="Viagem">Viagem</option>
+                                <option value="Educação">Educação</option>
+                                <option value="Casa">Casa</option>
+                                <option value="Carro">Carro</option>
+                                <option value="Emergência">Emergência</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="metaObservacoes">Observações</label>
+                        <textarea id="metaObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalMeta')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Meta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal para Categorias -->
+        <div class="modal" id="modalCategoria">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalCategoriaTitulo">Nova Categoria</h3>
+                    <button class="close-modal" onclick="fecharModal('modalCategoria')">&times;</button>
+                </div>
+                <form id="formCategoria">
+                    <input type="hidden" id="categoriaId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="categoriaNome">Nome *</label>
+                            <input type="text" id="categoriaNome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="categoriaCor">Cor</label>
+                            <input type="color" id="categoriaCor" value="#3498db">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoriaTipo">Tipo *</label>
+                        <select id="categoriaTipo" required>
+                            <option value="receita">Receita</option>
+                            <option value="despesa">Despesa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoriaObservacoes">Observações</label>
+                        <textarea id="categoriaObservacoes" rows="3"></textarea>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalCategoria')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Categoria</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
