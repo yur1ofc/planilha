@@ -8,32 +8,51 @@ class AuthSystem {
     }
 
     init() {
-        // Verificar se usuário já está logado
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                this.user = user;
-                this.showApp();
-                this.carregarDadosUsuario();
+        console.log("Iniciando sistema de autenticação...");
+        
+        // Aguardar o Firebase estar pronto
+        setTimeout(() => {
+            this.setupEventListeners();
+            
+            // Verificar se usuário já está logado
+            if (auth) {
+                auth.onAuthStateChanged((user) => {
+                    console.log("Estado de autenticação mudou:", user ? "Usuário logado" : "Usuário deslogado");
+                    if (user) {
+                        this.user = user;
+                        this.showApp();
+                        this.carregarDadosUsuario();
+                    } else {
+                        this.showLogin();
+                    }
+                });
             } else {
+                console.error("Firebase Auth não disponível");
                 this.showLogin();
             }
-        });
-
-        // Configurar event listeners para os formulários
-        this.setupEventListeners();
+        }, 1000);
     }
 
     setupEventListeners() {
+        console.log("Configurando event listeners...");
+        
         // Tabs de login/cadastro
-        document.getElementById('loginTab').addEventListener('click', () => this.switchTab('login'));
-        document.getElementById('registerTab').addEventListener('click', () => this.switchTab('register'));
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        
+        if (loginTab) loginTab.addEventListener('click', () => this.switchTab('login'));
+        if (registerTab) registerTab.addEventListener('click', () => this.switchTab('register'));
 
         // Formulários
-        document.getElementById('loginForm').addEventListener('submit', (e) => this.login(e));
-        document.getElementById('registerForm').addEventListener('submit', (e) => this.register(e));
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        
+        if (loginForm) loginForm.addEventListener('submit', (e) => this.login(e));
+        if (registerForm) registerForm.addEventListener('submit', (e) => this.register(e));
         
         // Recuperação de senha
-        document.getElementById('forgotPassword').addEventListener('click', (e) => this.resetPassword(e));
+        const forgotPassword = document.getElementById('forgotPassword');
+        if (forgotPassword) forgotPassword.addEventListener('click', (e) => this.resetPassword(e));
     }
 
     switchTab(tab) {
@@ -65,11 +84,14 @@ class AuthSystem {
         this.setLoading(loginBtn, true);
 
         try {
+            console.log("Tentando login...");
             const userCredential = await auth.signInWithEmailAndPassword(email, password);
             this.user = userCredential.user;
+            console.log("Login bem-sucedido:", this.user.email);
             this.showApp();
             this.carregarDadosUsuario();
         } catch (error) {
+            console.error("Erro no login:", error);
             this.handleAuthError(error);
         } finally {
             this.setLoading(loginBtn, false);
@@ -109,16 +131,25 @@ class AuthSystem {
         this.setLoading(registerBtn, true);
 
         try {
+            console.log("Tentando criar conta...");
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             this.user = userCredential.user;
+            console.log("Conta criada com sucesso:", this.user.email);
             
-            // Salvar nome do usuário no Firestore
-            await db.collection('users').doc(this.user.uid).set({
-                nome: name,
-                email: email,
-                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
-                ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            // Salvar nome do usuário no Firestore (se disponível)
+            if (db) {
+                try {
+                    await db.collection('users').doc(this.user.uid).set({
+                        nome: name,
+                        email: email,
+                        dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+                        ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log("Dados do usuário salvos no Firestore");
+                } catch (dbError) {
+                    console.warn("Não foi possível salvar no Firestore, usando localStorage:", dbError);
+                }
+            }
 
             // Inicializar dados do usuário
             await this.inicializarDadosUsuario();
@@ -126,6 +157,7 @@ class AuthSystem {
             this.showApp();
             this.showSuccess('Conta criada com sucesso!');
         } catch (error) {
+            console.error("Erro no cadastro:", error);
             this.handleAuthError(error);
         } finally {
             this.setLoading(registerBtn, false);
@@ -168,116 +200,139 @@ class AuthSystem {
     async inicializarDadosUsuario() {
         if (!this.user) return;
 
-        const userRef = db.collection('userData').doc(this.user.uid);
-        const doc = await userRef.get();
+        console.log("Inicializando dados do usuário...");
 
-        if (!doc.exists) {
-            // Criar estrutura inicial de dados
-            const dadosIniciais = {
-                perfil: {},
-                receitas: [],
-                despesas: [],
-                dividas: [],
-                investimentos: [],
-                metas: [],
-                categorias: [
-                    { id: 1, nome: "Salário", tipo: "receita", cor: "#2ecc71" },
-                    { id: 2, nome: "Freelance", tipo: "receita", cor: "#3498db" },
-                    { id: 3, nome: "Moradia", tipo: "despesa", cor: "#e74c3c" },
-                    { id: 4, nome: "Alimentação", tipo: "despesa", cor: "#f39c12" },
-                    { id: 5, nome: "Transporte", tipo: "despesa", cor: "#9b59b6" }
-                ],
-                questionario: {},
-                historicoPatrimonial: [
-                    { mes: 'Jan', valor: 1500 },
-                    { mes: 'Fev', valor: 1800 },
-                    { mes: 'Mar', valor: 2200 },
-                    { mes: 'Abr', valor: 2500 },
-                    { mes: 'Mai', valor: 2800 },
-                    { mes: 'Jun', valor: 3200 },
-                    { mes: 'Jul', valor: 3500 }
-                ],
-                alertas: [],
-                preferencias: {
-                    modoEscuro: false
-                },
-                automações: [],
-                backup: {
-                    ultimoBackup: null,
-                    proximoBackup: null
-                },
-                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
-                ultimaAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await userRef.set(dadosIniciais);
-            window.dadosUsuario = dadosIniciais;
-        } else {
-            window.dadosUsuario = doc.data();
+        // Se Firestore não estiver disponível, usar localStorage
+        if (!db) {
+            console.log("Firestore não disponível, usando localStorage");
+            this.carregarDadosLocal();
+            return;
         }
-
-        // Atualizar interface
-        if (window.atualizarDashboard) {
-            window.atualizarDashboard();
-        }
-    }
-
-    async carregarDadosUsuario() {
-        if (!this.user) return;
 
         try {
             const userRef = db.collection('userData').doc(this.user.uid);
             const doc = await userRef.get();
 
-            if (doc.exists) {
-                window.dadosUsuario = doc.data();
-                
-                // Atualizar última data de acesso
-                await userRef.update({
-                    ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // Atualizar interface
-                if (window.atualizarDashboard) {
-                    window.atualizarDashboard();
-                }
-
-                console.log('Dados carregados do Firebase');
+            if (!doc.exists) {
+                // Criar estrutura inicial de dados
+                const dadosIniciais = this.getDadosIniciais();
+                await userRef.set(dadosIniciais);
+                window.dadosUsuario = dadosIniciais;
+                console.log("Dados iniciais criados no Firestore");
             } else {
-                await this.inicializarDadosUsuario();
+                window.dadosUsuario = doc.data();
+                console.log("Dados carregados do Firestore");
+            }
+
+            // Atualizar interface
+            if (window.atualizarDashboard) {
+                window.atualizarDashboard();
             }
         } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-            this.showError('Erro ao carregar dados. Usando dados locais.');
-            
-            // Tentar carregar do localStorage como fallback
+            console.error("Erro ao inicializar dados:", error);
             this.carregarDadosLocal();
         }
+    }
+
+    getDadosIniciais() {
+        return {
+            perfil: {},
+            receitas: [],
+            despesas: [],
+            dividas: [],
+            investimentos: [],
+            metas: [],
+            categorias: [
+                { id: 1, nome: "Salário", tipo: "receita", cor: "#2ecc71" },
+                { id: 2, nome: "Freelance", tipo: "receita", cor: "#3498db" },
+                { id: 3, nome: "Moradia", tipo: "despesa", cor: "#e74c3c" },
+                { id: 4, nome: "Alimentação", tipo: "despesa", cor: "#f39c12" },
+                { id: 5, nome: "Transporte", tipo: "despesa", cor: "#9b59b6" }
+            ],
+            questionario: {},
+            historicoPatrimonial: [
+                { mes: 'Jan', valor: 1500 },
+                { mes: 'Fev', valor: 1800 },
+                { mes: 'Mar', valor: 2200 },
+                { mes: 'Abr', valor: 2500 },
+                { mes: 'Mai', valor: 2800 },
+                { mes: 'Jun', valor: 3200 },
+                { mes: 'Jul', valor: 3500 }
+            ],
+            alertas: [],
+            preferencias: {
+                modoEscuro: false
+            },
+            automações: [],
+            backup: {
+                ultimoBackup: null,
+                proximoBackup: null
+            },
+            dataCriacao: new Date().toISOString(),
+            ultimaAtualizacao: new Date().toISOString()
+        };
+    }
+
+    async carregarDadosUsuario() {
+        if (!this.user) return;
+
+        console.log("Carregando dados do usuário...");
+
+        // Tentar Firestore primeiro
+        if (db) {
+            try {
+                const userRef = db.collection('userData').doc(this.user.uid);
+                const doc = await userRef.get();
+
+                if (doc.exists) {
+                    window.dadosUsuario = doc.data();
+                    console.log('Dados carregados do Firebase');
+                    
+                    // Atualizar última data de acesso
+                    try {
+                        await userRef.update({
+                            ultimoAcesso: new Date().toISOString()
+                        });
+                    } catch (updateError) {
+                        console.warn("Não foi possível atualizar último acesso:", updateError);
+                    }
+
+                    // Atualizar interface
+                    if (window.atualizarDashboard) {
+                        window.atualizarDashboard();
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.warn('Erro ao carregar do Firebase, tentando localStorage:', error);
+            }
+        }
+
+        // Fallback para localStorage
+        await this.inicializarDadosUsuario();
     }
 
     async salvarDadosUsuario() {
         if (!this.user || !window.dadosUsuario) return;
 
-        try {
-            const userRef = db.collection('userData').doc(this.user.uid);
-            
-            await userRef.set({
-                ...window.dadosUsuario,
-                ultimaAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+        console.log("Salvando dados do usuário...");
 
-            console.log('Dados salvos no Firebase');
-            
-            // Também salvar no localStorage como backup
-            this.salvarDadosLocal();
-            
-        } catch (error) {
-            console.error('Erro ao salvar dados:', error);
-            this.showError('Erro ao sincronizar dados. Salvando localmente.');
-            
-            // Salvar apenas no localStorage como fallback
-            this.salvarDadosLocal();
+        // Atualizar timestamp
+        window.dadosUsuario.ultimaAtualizacao = new Date().toISOString();
+
+        // Tentar salvar no Firestore
+        if (db) {
+            try {
+                const userRef = db.collection('userData').doc(this.user.uid);
+                await userRef.set(window.dadosUsuario, { merge: true });
+                console.log('Dados salvos no Firebase');
+            } catch (error) {
+                console.warn('Erro ao salvar no Firebase, usando localStorage:', error);
+            }
         }
+
+        // Sempre salvar no localStorage como backup
+        this.salvarDadosLocal();
     }
 
     salvarDadosLocal() {
@@ -295,19 +350,20 @@ class AuthSystem {
             if (dadosSalvos) {
                 window.dadosUsuario = JSON.parse(dadosSalvos);
                 console.log('Dados carregados do localStorage');
+                
+                // Atualizar interface
+                if (window.atualizarDashboard) {
+                    window.atualizarDashboard();
+                }
+            } else {
+                // Se não há dados salvos, inicializar
+                window.dadosUsuario = this.getDadosIniciais();
+                console.log('Dados iniciais criados');
             }
         } catch (error) {
             console.error('Erro ao carregar dados locais:', error);
+            window.dadosUsuario = this.getDadosIniciais();
         }
-    }
-
-    // Sincronização automática a cada 30 segundos
-    iniciarSincronizacaoAutomatica() {
-        setInterval(() => {
-            if (this.user && window.dadosUsuario) {
-                this.salvarDadosUsuario();
-            }
-        }, 30000); // 30 segundos
     }
 
     // Utilitários
@@ -335,31 +391,38 @@ class AuthSystem {
     handleAuthError(error) {
         console.error('Erro de autenticação:', error);
         
+        let mensagem = 'Erro desconhecido. Tente novamente.';
+        
         switch (error.code) {
             case 'auth/invalid-email':
-                this.showError('E-mail inválido.');
+                mensagem = 'E-mail inválido.';
                 break;
             case 'auth/user-disabled':
-                this.showError('Esta conta foi desativada.');
+                mensagem = 'Esta conta foi desativada.';
                 break;
             case 'auth/user-not-found':
-                this.showError('Nenhuma conta encontrada com este e-mail.');
+                mensagem = 'Nenhuma conta encontrada com este e-mail.';
                 break;
             case 'auth/wrong-password':
-                this.showError('Senha incorreta.');
+                mensagem = 'Senha incorreta.';
                 break;
             case 'auth/email-already-in-use':
-                this.showError('Este e-mail já está em uso.');
+                mensagem = 'Este e-mail já está em uso.';
                 break;
             case 'auth/weak-password':
-                this.showError('A senha é muito fraca. Use pelo menos 6 caracteres.');
+                mensagem = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
                 break;
             case 'auth/network-request-failed':
-                this.showError('Erro de conexão. Verifique sua internet.');
+                mensagem = 'Erro de conexão. Verifique sua internet.';
+                break;
+            case 'auth/operation-not-allowed':
+                mensagem = 'Operação não permitida. Contate o suporte.';
                 break;
             default:
-                this.showError('Erro: ' + error.message);
+                mensagem = `Erro: ${error.message}`;
         }
+        
+        this.showError(mensagem);
     }
 
     showError(message) {
@@ -380,36 +443,72 @@ class AuthSystem {
         const notification = document.createElement('div');
         notification.className = `auth-notification ${type}`;
         notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 10000;
+            font-weight: 600;
+            ${type === 'success' ? 'background: #2ecc71;' : 'background: #e74c3c;'}
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease;
+        `;
         
         document.body.appendChild(notification);
 
         // Remover após 5 segundos
         setTimeout(() => {
-            notification.remove();
+            if (notification.parentNode) {
+                notification.remove();
+            }
         }, 5000);
     }
 
     showLogin() {
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('appContainer').classList.add('hidden');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
+        
+        console.log("Mostrando tela de login");
     }
 
     showApp() {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('appContainer').classList.remove('hidden');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appContainer) appContainer.classList.remove('hidden');
         
         // Atualizar informações do usuário
         if (this.user) {
-            document.getElementById('userEmail').textContent = this.user.email;
+            const userEmail = document.getElementById('userEmail');
+            if (userEmail) userEmail.textContent = this.user.email;
         }
+        
+        console.log("Mostrando aplicação principal");
         
         // Iniciar sincronização automática
         this.iniciarSincronizacaoAutomatica();
+    }
+
+    iniciarSincronizacaoAutomatica() {
+        // Sincronizar a cada 30 segundos se estiver online
+        setInterval(() => {
+            if (this.user && window.dadosUsuario && navigator.onLine) {
+                this.salvarDadosUsuario();
+            }
+        }, 30000);
     }
 }
 
 // Inicializar sistema de autenticação quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM carregado, inicializando auth system...");
     window.authSystem = new AuthSystem();
 });
 
@@ -420,9 +519,19 @@ window.sair = function() {
     }
 };
 
-// Função global para salvar dados (para ser chamada de outros arquivos)
+// Função global para salvar dados
 window.salvarDadosFirebase = function() {
     if (window.authSystem && window.authSystem.user) {
         window.authSystem.salvarDadosUsuario();
+    } else {
+        // Se não está logado, salvar apenas localmente
+        if (window.dadosUsuario) {
+            try {
+                localStorage.setItem('planilhaFinanceira', JSON.stringify(window.dadosUsuario));
+                console.log("Dados salvos localmente (usuário não logado)");
+            } catch (error) {
+                console.error("Erro ao salvar dados localmente:", error);
+            }
+        }
     }
 };
