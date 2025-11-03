@@ -9,15 +9,35 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
+try {
+    // Verificar se o Firebase já foi inicializado
+    if (!firebase.apps.length) {
+        const app = firebase.initializeApp(firebaseConfig);
+        console.log("Firebase inicializado com sucesso");
+    } else {
+        console.log("Firebase já estava inicializado");
+    }
 
-// Initialize Firebase Authentication and get a reference to the service
-const auth = firebase.auth();
+    // Initialize Firebase Authentication and get a reference to the service
+    const auth = firebase.auth();
+    
+    // Initialize Cloud Firestore and get a reference to the service
+    const db = firebase.firestore();
+    
+    // Configurações do Firestore para desenvolvimento
+    if (window.location.hostname === "localhost") {
+        db.settings({
+            experimentalForceLongPolling: true,
+            merge: true
+        });
+        console.log("Firestore configurado para desenvolvimento local");
+    }
 
-// Initialize Cloud Firestore and get a reference to the service
-const db = firebase.firestore();
+    // Export for use in other files
+    window.firebase = firebase;
+    window.auth = auth;
+    window.db = db;
 
-// Export for use in other files
-window.firebase = firebase;
-window.auth = auth;
-window.db = db;
+} catch (error) {
+    console.error("Erro ao inicializar Firebase:", error);
+}
