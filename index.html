@@ -165,69 +165,11 @@
 
             <!-- Conteúdo -->
             <div class="content">
-                <!-- Questionário (apenas para novos usuários) -->
-                <div id="questionnaireContainer" class="hidden">
-                    <div class="progress-bar">
-                        <div class="progress" id="progressBar"></div>
-                    </div>
-
-                    <!-- Seções do Questionário -->
-                    <div class="section active" id="section1">
-                        <h2>Perfil Financeiro</h2>
-                        <p>Vamos começar conhecendo melhor sua situação financeira atual.</p>
-                        
-                        <div class="question-group">
-                            <div class="question">Qual sua situação habitacional?</div>
-                            <div class="options">
-                                <div class="option" onclick="selectOption(this)">Mora sozinho(a)</div>
-                                <div class="option" onclick="selectOption(this)">Mora com os pais/familiares</div>
-                                <div class="option" onclick="selectOption(this)">Mora com parceiro(a)/amigos</div>
-                                <div class="option" onclick="selectOption(this)">Outro</div>
-                            </div>
-                        </div>
-                        
-                        <div class="navigation">
-                            <div></div>
-                            <button class="btn btn-primary" onclick="nextSection(1)">Próximo</button>
-                        </div>
-                    </div>
-
-                    <!-- ... outras seções do questionário ... -->
-
-                    <div class="section" id="section6">
-                        <h2>Resumo e Análise</h2>
-                        <p>Veja um resumo completo da sua situação financeira.</p>
-                        
-                        <div class="resumo-grid">
-                            <div class="summary-card">
-                                <h3>Resumo Mensal</h3>
-                                <p>Total Receitas: <span class="summary-value positive" id="resumoReceitas">R$ 0,00</span></p>
-                                <p>Total Despesas: <span class="summary-value negative" id="resumoDespesas">R$ 0,00</span></p>
-                                <p>Saldo Final: <span class="summary-value" id="resumoSaldo">R$ 0,00</span></p>
-                            </div>
-                            
-                            <div class="chart-container">
-                                <canvas id="gastosChart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <div class="alert">
-                            <strong>Recomendação:</strong> Tente economizar pelo menos 20% da sua renda para investimentos.
-                        </div>
-                        
-                        <div class="navigation">
-                            <button class="btn btn-secondary" onclick="prevSection(6)">Anterior</button>
-                            <button class="btn btn-primary" onclick="finalizarQuestionario()">Finalizar e Ver Dashboard</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Dashboard -->
                 <div id="dashboard" class="dashboard">
                     <div class="dashboard-header">
                         <h2>Dashboard Financeiro</h2>
                         <div class="action-buttons">
-                            <button class="btn btn-secondary" onclick="reiniciarQuestionario()">Editar Questionário</button>
                             <button class="btn" onclick="exportarDados()">Exportar Dados</button>
                             <button class="btn btn-primary" onclick="gerarRelatorioPDF()">Gerar Relatório PDF</button>
                         </div>
