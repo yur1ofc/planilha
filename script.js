@@ -101,9 +101,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // FUNÇÃO: Inicializar histórico patrimonial com dados FIXOS
 function inicializarHistoricoPatrimonial() {
-    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'];
-    
-    // Dados FIXOS que não mudam
     window.dadosUsuario.historicoPatrimonial = [
         { mes: 'Jan', valor: 1500 },
         { mes: 'Fev', valor: 1800 },
@@ -113,15 +110,7 @@ function inicializarHistoricoPatrimonial() {
         { mes: 'Jun', valor: 3200 },
         { mes: 'Jul', valor: 3500 }
     ];
-    
     salvarDados();
-}
-
-// FUNÇÃO: Atualizar histórico patrimonial - AGORA COM DADOS FIXOS
-function atualizarHistoricoPatrimonial() {
-    // NÃO atualiza mais o histórico - mantém dados fixos
-    // Isso previne completamente o crescimento infinito
-    return;
 }
 
 // Funções de navegação do questionário
@@ -526,8 +515,6 @@ function atualizarTabelaMetas() {
     
     const metas = window.dadosUsuario.metas || [];
     
-    console.log("Atualizando tabela de metas:", metas);
-    
     if (metas.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -576,8 +563,6 @@ function atualizarTabelaCategorias() {
     if (!container) return;
     
     const categorias = window.dadosUsuario.categorias || [];
-    
-    console.log("Atualizando tabela de categorias:", categorias);
     
     if (categorias.length === 0) {
         container.innerHTML = `
@@ -689,10 +674,6 @@ function calcularRendimentoMensalInvestimentos() {
     });
     
     return rendimentoTotal;
-}
-
-function calcularProgressoMeta(meta) {
-    return parseFloat(meta.progresso || 0);
 }
 
 function atualizarRendimentoInvestimentos() {
@@ -869,11 +850,8 @@ function criarGraficos() {
     }
 }
 
-function atualizarGraficosDashboard() {
-    return;
-}
-
 function atualizarGraficoGastos() {
+    // Implementação futura para atualizar gráfico dinamicamente
 }
 
 // Assistente Financeiro
@@ -1067,13 +1045,208 @@ function abrirModalReceita(editIndex = null) {
         titulo.textContent = 'Nova Receita';
         form.reset();
         document.getElementById('receitaId').value = '';
-        document.getElementById('receitaData').value = new Date().toISOString().split('T')[0];
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('receitaData').value = hoje;
     }
     
     modal.style.display = 'flex';
 }
 
-// ... (as outras funções de modal seguem o mesmo padrão - vou pular para economizar espaço)
+function abrirModalDespesa(editIndex = null) {
+    const modal = document.getElementById('modalDespesa');
+    const form = document.getElementById('formDespesa');
+    const titulo = document.getElementById('modalDespesaTitulo');
+    
+    if (!modal || !form || !titulo) return;
+    
+    if (editIndex !== null) {
+        titulo.textContent = 'Editar Despesa';
+        const despesa = window.dadosUsuario.despesas[editIndex];
+        document.getElementById('despesaId').value = editIndex;
+        document.getElementById('despesaDescricao').value = despesa.descricao || '';
+        document.getElementById('despesaValor').value = despesa.valor || '';
+        document.getElementById('despesaCategoria').value = despesa.categoria || '';
+        document.getElementById('despesaData').value = despesa.data || '';
+        document.getElementById('despesaRecorrente').checked = despesa.recorrente || false;
+        document.getElementById('despesaObservacoes').value = despesa.observacoes || '';
+    } else {
+        titulo.textContent = 'Nova Despesa';
+        form.reset();
+        document.getElementById('despesaId').value = '';
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('despesaData').value = hoje;
+        document.getElementById('despesaRecorrente').checked = false;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function abrirModalDivida(editIndex = null) {
+    const modal = document.getElementById('modalDivida');
+    const form = document.getElementById('formDivida');
+    const titulo = document.getElementById('modalDividaTitulo');
+    
+    if (!modal || !form || !titulo) return;
+    
+    if (editIndex !== null) {
+        titulo.textContent = 'Editar Dívida';
+        const divida = window.dadosUsuario.dividas[editIndex];
+        document.getElementById('dividaId').value = editIndex;
+        document.getElementById('dividaDescricao').value = divida.descricao || '';
+        document.getElementById('dividaValorTotal').value = divida.valorTotal || '';
+        document.getElementById('dividaValorParcela').value = divida.valorParcela || '';
+        document.getElementById('dividaParcelas').value = divida.parcelas || '';
+        document.getElementById('dividaTaxaJuros').value = divida.taxaJuros || '';
+        document.getElementById('dividaStatus').value = divida.status || 'Pendente';
+        document.getElementById('dividaObservacoes').value = divida.observacoes || '';
+    } else {
+        titulo.textContent = 'Nova Dívida';
+        form.reset();
+        document.getElementById('dividaId').value = '';
+        document.getElementById('dividaStatus').value = 'Pendente';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function abrirModalInvestimento(editIndex = null) {
+    const modal = document.getElementById('modalInvestimento');
+    const form = document.getElementById('formInvestimento');
+    const titulo = document.getElementById('modalInvestimentoTitulo');
+    
+    if (!modal || !form || !titulo) return;
+    
+    if (editIndex !== null) {
+        titulo.textContent = 'Editar Investimento';
+        const investimento = window.dadosUsuario.investimentos[editIndex];
+        document.getElementById('investimentoId').value = editIndex;
+        document.getElementById('investimentoDescricao').value = investimento.descricao || '';
+        document.getElementById('investimentoValor').value = investimento.valor || '';
+        document.getElementById('investimentoTipo').value = investimento.tipo || '';
+        document.getElementById('investimentoRentabilidade').value = investimento.rentabilidade || '';
+        document.getElementById('investimentoData').value = investimento.data || '';
+        document.getElementById('investimentoObservacoes').value = investimento.observacoes || '';
+    } else {
+        titulo.textContent = 'Novo Investimento';
+        form.reset();
+        document.getElementById('investimentoId').value = '';
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('investimentoData').value = hoje;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function abrirModalMeta(editIndex = null) {
+    const modal = document.getElementById('modalMeta');
+    const form = document.getElementById('formMeta');
+    const titulo = document.getElementById('modalMetaTitulo');
+    
+    if (!modal || !form || !titulo) return;
+    
+    if (editIndex !== null) {
+        titulo.textContent = 'Editar Meta';
+        const meta = window.dadosUsuario.metas[editIndex];
+        document.getElementById('metaId').value = editIndex;
+        document.getElementById('metaDescricao').value = meta.descricao || '';
+        document.getElementById('metaValor').value = meta.valor || '';
+        document.getElementById('metaData').value = meta.data || '';
+        document.getElementById('metaCategoria').value = meta.categoria || '';
+        document.getElementById('metaObservacoes').value = meta.observacoes || '';
+    } else {
+        titulo.textContent = 'Nova Meta';
+        form.reset();
+        document.getElementById('metaId').value = '';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function abrirModalCategoria(editIndex = null) {
+    const modal = document.getElementById('modalCategoria');
+    const form = document.getElementById('formCategoria');
+    const titulo = document.getElementById('modalCategoriaTitulo');
+    
+    if (!modal || !form || !titulo) return;
+    
+    if (editIndex !== null) {
+        titulo.textContent = 'Editar Categoria';
+        const categoria = window.dadosUsuario.categorias[editIndex];
+        document.getElementById('categoriaId').value = editIndex;
+        document.getElementById('categoriaNome').value = categoria.nome || '';
+        document.getElementById('categoriaCor').value = categoria.cor || '#3498db';
+        document.getElementById('categoriaTipo').value = categoria.tipo || 'receita';
+        document.getElementById('categoriaObservacoes').value = categoria.observacoes || '';
+    } else {
+        titulo.textContent = 'Nova Categoria';
+        form.reset();
+        document.getElementById('categoriaId').value = '';
+        document.getElementById('categoriaCor').value = '#3498db';
+        document.getElementById('categoriaTipo').value = 'receita';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function abrirModalRegra() {
+    // Criar modal dinamicamente para regras
+    const modalHtml = `
+        <div class="modal" id="modalRegra" style="display: flex;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Nova Regra de Automação</h3>
+                    <button class="close-modal" onclick="fecharModal('modalRegra')">&times;</button>
+                </div>
+                <form id="formRegra">
+                    <div class="form-group">
+                        <label>Condição</label>
+                        <select id="regraCampo">
+                            <option value="descricao">Descrição</option>
+                            <option value="valor">Valor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Operador</label>
+                        <select id="regraOperador">
+                            <option value="contem">Contém</option>
+                            <option value="igual">É igual a</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="text" id="regraValor" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Então categorizar como:</label>
+                        <select id="regraCategoria">
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Lazer">Lazer</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal('modalRegra')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Regra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal existente se houver
+    const modalExistente = document.getElementById('modalRegra');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Adicionar event listener para o formulário
+    document.getElementById('formRegra').addEventListener('submit', function(e) {
+        e.preventDefault();
+        salvarRegra();
+    });
+}
 
 function fecharModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -1104,9 +1277,254 @@ function salvarReceita(e) {
     salvarDados();
     fecharModal('modalReceita');
     atualizarDashboard();
+    mostrarNotificacao('Receita salva com sucesso!', 'success');
 }
 
-// ... (as outras funções de CRUD seguem o mesmo padrão)
+function salvarDespesa(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('despesaId')?.value;
+    const despesa = {
+        descricao: document.getElementById('despesaDescricao')?.value || '',
+        valor: parseFloat(document.getElementById('despesaValor')?.value) || 0,
+        categoria: document.getElementById('despesaCategoria')?.value || '',
+        data: document.getElementById('despesaData')?.value || '',
+        recorrente: document.getElementById('despesaRecorrente')?.checked || false,
+        observacoes: document.getElementById('despesaObservacoes')?.value || ''
+    };
+    
+    if (id === '') {
+        window.dadosUsuario.despesas.push(despesa);
+    } else {
+        window.dadosUsuario.despesas[id] = despesa;
+    }
+    
+    salvarDados();
+    fecharModal('modalDespesa');
+    atualizarDashboard();
+    mostrarNotificacao('Despesa salva com sucesso!', 'success');
+}
+
+function salvarDivida(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('dividaId')?.value;
+    const divida = {
+        descricao: document.getElementById('dividaDescricao')?.value || '',
+        valorTotal: parseFloat(document.getElementById('dividaValorTotal')?.value) || 0,
+        valorParcela: parseFloat(document.getElementById('dividaValorParcela')?.value) || 0,
+        parcelas: document.getElementById('dividaParcelas')?.value || '',
+        taxaJuros: document.getElementById('dividaTaxaJuros')?.value ? parseFloat(document.getElementById('dividaTaxaJuros')?.value) : null,
+        status: document.getElementById('dividaStatus')?.value || 'Pendente',
+        observacoes: document.getElementById('dividaObservacoes')?.value || ''
+    };
+    
+    if (id === '') {
+        window.dadosUsuario.dividas.push(divida);
+    } else {
+        window.dadosUsuario.dividas[id] = divida;
+    }
+    
+    salvarDados();
+    fecharModal('modalDivida');
+    atualizarDashboard();
+    mostrarNotificacao('Dívida salva com sucesso!', 'success');
+}
+
+function salvarInvestimento(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('investimentoId')?.value;
+    const investimento = {
+        descricao: document.getElementById('investimentoDescricao')?.value || '',
+        valor: parseFloat(document.getElementById('investimentoValor')?.value) || 0,
+        tipo: document.getElementById('investimentoTipo')?.value || '',
+        rentabilidade: document.getElementById('investimentoRentabilidade')?.value ? parseFloat(document.getElementById('investimentoRentabilidade')?.value) : null,
+        data: document.getElementById('investimentoData')?.value || '',
+        observacoes: document.getElementById('investimentoObservacoes')?.value || ''
+    };
+    
+    if (id === '') {
+        window.dadosUsuario.investimentos.push(investimento);
+    } else {
+        window.dadosUsuario.investimentos[id] = investimento;
+    }
+    
+    salvarDados();
+    fecharModal('modalInvestimento');
+    atualizarDashboard();
+    mostrarNotificacao('Investimento salvo com sucesso!', 'success');
+}
+
+function salvarMeta() {
+    const id = document.getElementById('metaId')?.value;
+    const meta = {
+        descricao: document.getElementById('metaDescricao')?.value || '',
+        valor: parseFloat(document.getElementById('metaValor')?.value) || 0,
+        data: document.getElementById('metaData')?.value || '',
+        categoria: document.getElementById('metaCategoria')?.value || '',
+        observacoes: document.getElementById('metaObservacoes')?.value || '',
+        progresso: 0
+    };
+    
+    if (id === '') {
+        window.dadosUsuario.metas.push(meta);
+    } else {
+        // Manter progresso ao editar
+        meta.progresso = window.dadosUsuario.metas[id].progresso || 0;
+        window.dadosUsuario.metas[id] = meta;
+    }
+    
+    salvarDados();
+    fecharModal('modalMeta');
+    atualizarTabelaMetas();
+    mostrarNotificacao('Meta salva com sucesso!', 'success');
+}
+
+function salvarCategoria() {
+    const id = document.getElementById('categoriaId')?.value;
+    const categoria = {
+        nome: document.getElementById('categoriaNome')?.value || '',
+        cor: document.getElementById('categoriaCor')?.value || '#3498db',
+        tipo: document.getElementById('categoriaTipo')?.value || 'receita',
+        observacoes: document.getElementById('categoriaObservacoes')?.value || ''
+    };
+    
+    if (id === '') {
+        categoria.id = Date.now();
+        window.dadosUsuario.categorias.push(categoria);
+    } else {
+        window.dadosUsuario.categorias[id] = categoria;
+    }
+    
+    salvarDados();
+    fecharModal('modalCategoria');
+    atualizarTabelaCategorias();
+    mostrarNotificacao('Categoria salva com sucesso!', 'success');
+}
+
+function salvarRegra() {
+    const regra = {
+        campo: document.getElementById('regraCampo')?.value || '',
+        operador: document.getElementById('regraOperador')?.value || '',
+        valor: document.getElementById('regraValor')?.value || '',
+        categoria: document.getElementById('regraCategoria')?.value || ''
+    };
+    
+    window.dadosUsuario.automações.push(regra);
+    salvarDados();
+    fecharModal('modalRegra');
+    atualizarListaRegras();
+    mostrarNotificacao('Regra de automação salva com sucesso!', 'success');
+}
+
+// Funções de edição
+function editarReceita(index) { 
+    abrirModalReceita(index); 
+}
+
+function editarDespesa(index) { 
+    abrirModalDespesa(index); 
+}
+
+function editarDivida(index) { 
+    abrirModalDivida(index); 
+}
+
+function editarInvestimento(index) { 
+    abrirModalInvestimento(index); 
+}
+
+function editarMeta(index) { 
+    abrirModalMeta(index); 
+}
+
+function editarCategoria(index) { 
+    abrirModalCategoria(index); 
+}
+
+// Funções de exclusão
+function excluirReceita(index) {
+    if (confirm('Tem certeza que deseja excluir esta receita?')) {
+        window.dadosUsuario.receitas.splice(index, 1);
+        salvarDados();
+        atualizarDashboard();
+        mostrarNotificacao('Receita excluída com sucesso!', 'success');
+    }
+}
+
+function excluirDespesa(index) {
+    if (confirm('Tem certeza que deseja excluir esta despesa?')) {
+        window.dadosUsuario.despesas.splice(index, 1);
+        salvarDados();
+        atualizarDashboard();
+        mostrarNotificacao('Despesa excluída com sucesso!', 'success');
+    }
+}
+
+function excluirDivida(index) {
+    if (confirm('Tem certeza que deseja excluir esta dívida?')) {
+        window.dadosUsuario.dividas.splice(index, 1);
+        salvarDados();
+        atualizarDashboard();
+        mostrarNotificacao('Dívida excluída com sucesso!', 'success');
+    }
+}
+
+function excluirInvestimento(index) {
+    if (confirm('Tem certeza que deseja excluir este investimento?')) {
+        window.dadosUsuario.investimentos.splice(index, 1);
+        salvarDados();
+        atualizarDashboard();
+        mostrarNotificacao('Investimento excluído com sucesso!', 'success');
+    }
+}
+
+function excluirMeta(index) {
+    if (confirm('Tem certeza que deseja excluir esta meta?')) {
+        window.dadosUsuario.metas.splice(index, 1);
+        salvarDados();
+        atualizarTabelaMetas();
+        mostrarNotificacao('Meta excluída com sucesso!', 'success');
+    }
+}
+
+function excluirCategoria(index) {
+    if (confirm('Tem certeza que deseja excluir esta categoria?')) {
+        window.dadosUsuario.categorias.splice(index, 1);
+        salvarDados();
+        atualizarTabelaCategorias();
+        mostrarNotificacao('Categoria excluída com sucesso!', 'success');
+    }
+}
+
+function excluirRegra(index) {
+    if (confirm('Tem certeza que deseja excluir esta regra?')) {
+        window.dadosUsuario.automações.splice(index, 1);
+        salvarDados();
+        atualizarListaRegras();
+        mostrarNotificacao('Regra excluída com sucesso!', 'success');
+    }
+}
+
+// Funções de Metas
+function adicionarProgressoMeta(index) {
+    const meta = window.dadosUsuario.metas[index];
+    const novoProgresso = parseFloat(meta.progresso || 0) + 100;
+    
+    // Não permitir progresso maior que o valor da meta
+    meta.progresso = Math.min(novoProgresso, parseFloat(meta.valor));
+    
+    salvarDados();
+    atualizarTabelaMetas();
+    
+    // Verificar se a meta foi alcançada
+    if (meta.progresso >= parseFloat(meta.valor)) {
+        mostrarNotificacao(`Parabéns! Você alcançou a meta: ${meta.descricao}`, 'success');
+    } else {
+        mostrarNotificacao('Progresso adicionado à meta!', 'success');
+    }
+}
 
 // Modo Escuro
 function toggleModoEscuro() {
@@ -1114,6 +1532,10 @@ function toggleModoEscuro() {
     window.dadosUsuario.preferencias.modoEscuro = !window.dadosUsuario.preferencias.modoEscuro;
     salvarDados();
     aplicarTema();
+    mostrarNotificacao(
+        window.dadosUsuario.preferencias.modoEscuro ? 'Modo escuro ativado!' : 'Modo claro ativado!', 
+        'success'
+    );
 }
 
 function aplicarTema() {
@@ -1124,20 +1546,18 @@ function aplicarTema() {
         if (themeToggle) {
             themeToggle.textContent = '☀️';
         }
-        console.log("Modo escuro ativado");
     } else {
         document.body.classList.remove('dark-mode');
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
             themeToggle.textContent = '🌙';
         }
-        console.log("Modo claro ativado");
     }
 }
 
 // Sistema de Backup
 function fazerBackup() {
-    const dados = JSON.stringify(window.dadosUsuario);
+    const dados = JSON.stringify(window.dadosUsuario, null, 2);
     const blob = new Blob([dados], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
@@ -1154,7 +1574,326 @@ function fazerBackup() {
     mostrarNotificacao('Backup realizado com sucesso!', 'success');
 }
 
-// ... (continua com as outras funções)
+function restaurarBackup() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const dadosRestaurados = JSON.parse(e.target.result);
+                window.dadosUsuario = { ...window.dadosUsuario, ...dadosRestaurados };
+                salvarDados();
+                location.reload();
+                mostrarNotificacao('Dados restaurados com sucesso!', 'success');
+            } catch (error) {
+                mostrarNotificacao('Erro ao restaurar backup. Arquivo inválido.', 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
+}
+
+function atualizarInfoBackup() {
+    const ultimoBackup = window.dadosUsuario.backup.ultimoBackup;
+    const ultimoBackupElement = document.getElementById('ultimoBackup');
+    const proximoBackupElement = document.getElementById('proximoBackup');
+    
+    if (ultimoBackupElement) {
+        if (ultimoBackup) {
+            ultimoBackupElement.textContent = new Date(ultimoBackup).toLocaleString('pt-BR');
+        } else {
+            ultimoBackupElement.textContent = 'Nunca';
+        }
+    }
+    
+    if (proximoBackupElement) {
+        if (ultimoBackup) {
+            const proximo = new Date(ultimoBackup);
+            proximo.setDate(proximo.getDate() + 1);
+            proximoBackupElement.textContent = proximo.toLocaleString('pt-BR');
+        } else {
+            proximoBackupElement.textContent = '-';
+        }
+    }
+}
+
+// Sistema de Automações
+function atualizarListaRegras() {
+    const container = document.getElementById('automationRules');
+    if (!container) return;
+    
+    const regras = window.dadosUsuario.automações || [];
+    
+    if (regras.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma regra configurada</div>';
+        return;
+    }
+    
+    container.innerHTML = regras.map((regra, index) => `
+        <div class="rule-item">
+            <strong>Se ${regra.campo} ${regra.operador} "${regra.valor}" → Categoria: "${regra.categoria}"</strong>
+            <button class="btn btn-danger btn-sm" onclick="excluirRegra(${index})">Remover</button>
+        </div>
+    `).join('');
+}
+
+// Analytics Avançados
+function inicializarAnalytics() {
+    // KPIs automáticos
+    const totalReceitas = calcularTotalReceitas();
+    const totalDespesas = calcularTotalDespesas();
+    const taxaPoupanca = totalReceitas > 0 ? ((totalReceitas - totalDespesas) / totalReceitas) * 100 : 0;
+    
+    const taxaPoupancaElement = document.querySelector('#analytics .kpi-grid .stat-card:nth-child(2) .stat-value');
+    if (taxaPoupancaElement) {
+        taxaPoupancaElement.textContent = `${taxaPoupanca.toFixed(1)}%`;
+    }
+    
+    // Gráfico comparativo
+    const ctxComparativo = document.getElementById('comparativoMercadoChart');
+    if (ctxComparativo && window.Chart) {
+        if (comparativoMercadoChart) comparativoMercadoChart.destroy();
+        
+        comparativoMercadoChart = new Chart(ctxComparativo.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Você', 'Média Mercado'],
+                datasets: [{
+                    label: 'Taxa de Poupança (%)',
+                    data: [taxaPoupanca, 18],
+                    backgroundColor: ['#2ecc71', '#95a5a6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Porcentagem (%)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Gráfico de projeção patrimonial
+    const ctxProjecao = document.getElementById('projecaoPatrimonialChart');
+    if (ctxProjecao && window.Chart) {
+        if (projecaoPatrimonialChart) projecaoPatrimonialChart.destroy();
+        
+        const patrimonioAtual = calcularTotalReceitas() - calcularTotalDespesas();
+        const meses = ['Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan'];
+        const projecao = [];
+        
+        for (let i = 0; i < 6; i++) {
+            projecao.push(patrimonioAtual * (1 + 0.05 * i));
+        }
+        
+        projecaoPatrimonialChart = new Chart(ctxProjecao.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Projeção Patrimonial (R$)',
+                    data: projecao,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+}
+
+// Educação Financeira
+function carregarConteudoEducativo() {
+    const conteudos = [
+        {
+            titulo: "💰 Como criar uma reserva de emergência",
+            tipo: "video",
+            duracao: "5 min",
+            nivel: "Iniciante"
+        },
+        {
+            titulo: "📈 Entendendo juros compostos",
+            tipo: "artigo", 
+            duracao: "8 min",
+            nivel: "Intermediário"
+        }
+    ];
+    
+    // Exibir na UI
+    const container = document.getElementById('educacaoContainer');
+    if (!container) return;
+    
+    container.innerHTML = conteudos.map(conteudo => `
+        <div class="conteudo-educativo">
+            <h4>${conteudo.titulo}</h4>
+            <div class="conteudo-meta">
+                <span class="badge">${conteudo.tipo}</span>
+                <span>${conteudo.duracao}</span>
+                <span class="nivel ${conteudo.nivel.toLowerCase()}">${conteudo.nivel}</span>
+            </div>
+            <button class="btn btn-sm" onclick="iniciarConteudo('${conteudo.titulo}')">Começar</button>
+        </div>
+    `).join('');
+}
+
+function iniciarConteudo(titulo) {
+    mostrarNotificacao(`Iniciando: ${titulo}`, 'info');
+}
+
+// Simulador de Metas
+function calcularSimulacao() {
+    const valor = parseFloat(document.getElementById('simuladorValor')?.value);
+    const prazo = parseInt(document.getElementById('simuladorPrazo')?.value);
+    
+    if (valor && prazo) {
+        const mensal = valor / prazo;
+        const valorMensalElement = document.getElementById('valorMensal');
+        const recomendacaoSimulacaoElement = document.getElementById('recomendacaoSimulacao');
+        const resultadoSimulacaoElement = document.getElementById('resultadoSimulacao');
+        
+        if (valorMensalElement) {
+            valorMensalElement.textContent = `R$ ${mensal.toFixed(2)}`;
+        }
+        
+        if (recomendacaoSimulacaoElement) {
+            const recomendacao = mensal > 500 ? 
+                "Considere investir parte do valor para alcançar mais rápido" :
+                "Valor acessível! Você consegue!";
+            recomendacaoSimulacaoElement.textContent = recomendacao;
+        }
+        
+        if (resultadoSimulacaoElement) {
+            resultadoSimulacaoElement.classList.remove('hidden');
+        }
+    } else {
+        alert('Por favor, preencha todos os campos do simulador.');
+    }
+}
+
+// Sistema de Notificações
+function mostrarNotificacao(mensagem, tipo) {
+    // Remover notificação anterior se existir
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${tipo}`;
+    notification.textContent = mensagem;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        z-index: 10000;
+        font-weight: 600;
+        ${type === 'success' ? 'background: #2ecc71;' : 
+          type === 'error' ? 'background: #e74c3c;' : 
+          type === 'warning' ? 'background: #f39c12;' : 
+          'background: #3498db;'}
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+
+    // Remover após 5 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Relatórios PDF
+function gerarRelatorioPDF(tipo = 'completo') {
+    try {
+        const { jsPDF } = window.jspdf;
+        
+        if (!jsPDF) {
+            mostrarNotificacao('Biblioteca PDF não carregada', 'error');
+            return;
+        }
+        
+        const doc = new jsPDF();
+        
+        // Adicionar título baseado no tipo
+        let titulo = 'Relatório Financeiro';
+        switch(tipo) {
+            case 'mensal':
+                titulo = 'Relatório Financeiro Mensal';
+                break;
+            case 'anual':
+                titulo = 'Relatório Financeiro Anual';
+                break;
+            case 'investimentos':
+                titulo = 'Relatório de Investimentos';
+                break;
+            case 'metas':
+                titulo = 'Relatório de Metas Financeiras';
+                break;
+            default:
+                titulo = 'Relatório Financeiro Completo';
+        }
+        
+        doc.setFontSize(20);
+        doc.text(titulo, 20, 20);
+        
+        // Adicionar data
+        const hoje = new Date();
+        doc.setFontSize(12);
+        doc.text(`Gerado em: ${hoje.toLocaleDateString('pt-BR')}`, 20, 30);
+        
+        // Adicionar resumo financeiro
+        doc.setFontSize(16);
+        doc.text('Resumo Financeiro', 20, 50);
+        
+        const totalReceitas = calcularTotalReceitas();
+        const totalDespesas = calcularTotalDespesas();
+        const totalDividas = calcularTotalDividasDashboard();
+        const totalInvestido = calcularTotalInvestidoDashboard();
+        const saldo = totalReceitas - totalDespesas - totalDividas;
+        
+        doc.setFontSize(12);
+        doc.text(`Receitas Totais: R$ ${totalReceitas.toFixed(2)}`, 20, 65);
+        doc.text(`Despesas Totais: R$ ${totalDespesas.toFixed(2)}`, 20, 75);
+        doc.text(`Parcelas de Dívidas: R$ ${totalDividas.toFixed(2)}`, 20, 85);
+        doc.text(`Total Investido: R$ ${totalInvestido.toFixed(2)}`, 20, 95);
+        doc.text(`Saldo Disponível: R$ ${saldo.toFixed(2)}`, 20, 105);
+        
+        // Salvar o PDF
+        doc.save(`relatorio-${tipo}-${hoje.toISOString().split('T')[0]}.pdf`);
+        mostrarNotificacao('Relatório PDF gerado com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        mostrarNotificacao('Erro ao gerar relatório PDF', 'error');
+    }
+}
 
 // Funções de salvamento e carregamento
 function salvarDados() {
@@ -1238,6 +1977,7 @@ function exportarDados() {
     link.href = URL.createObjectURL(dataBlob);
     link.download = 'dados-financeiros.json';
     link.click();
+    mostrarNotificacao('Dados exportados com sucesso!', 'success');
 }
 
 // Funções utilitárias
@@ -1269,3 +2009,6 @@ window.mostrarDados = function() {
 
 // Exportar função para uso global
 window.atualizarDashboard = atualizarDashboard;
+window.atualizarTabelaMetas = atualizarTabelaMetas;
+window.atualizarTabelaCategorias = atualizarTabelaCategorias;
+window.atualizarListaRegras = atualizarListaRegras;
