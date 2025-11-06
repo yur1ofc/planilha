@@ -1,4 +1,4 @@
-// Sistema de Autenticação e Sincronização com Firebase
+// Sistema de Autenticação Simplificado
 class AuthSystem {
     constructor() {
         this.user = null;
@@ -8,36 +8,21 @@ class AuthSystem {
 
     init() {
         console.log("Iniciando sistema de autenticação...");
-        this.setupEventListeners();
         
         // Verificar autenticação local primeiro
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             console.log("Usuário encontrado no localStorage");
             this.user = JSON.parse(savedUser);
-            this.showApp();
             return;
         }
-
-        this.showLogin();
-    }
-
-    setupEventListeners() {
-        console.log("Configurando event listeners...");
-        
-        // Os formulários já são tratados pelo FinancialManager
-        // Esta classe agora serve como fallback para Firebase
     }
 
     async login(email, password) {
-        // Esta função será chamada pelo FinancialManager
-        // Implementação para compatibilidade
         return true;
     }
 
     async register(userData) {
-        // Esta função será chamada pelo FinancialManager  
-        // Implementação para compatibilidade
         return true;
     }
 
@@ -45,20 +30,9 @@ class AuthSystem {
         try {
             console.log("Saindo da conta...");
             this.user = null;
-            this.showLogin();
         } catch (error) {
             console.error('Erro ao sair:', error);
         }
-    }
-
-    showLogin() {
-        // O FinancialManager já controla a exibição das telas
-        console.log("Mostrando tela de login");
-    }
-
-    showApp() {
-        // O FinancialManager já controla a exibição das telas
-        console.log("Mostrando aplicação principal");
     }
 }
 
