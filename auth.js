@@ -15,7 +15,7 @@ class AuthSystem {
             this.setupEventListeners();
             
             // Verificar se Firebase Auth está disponível
-            if (window.auth) {
+            if (window.auth && typeof auth.onAuthStateChanged === 'function') {
                 console.log("Firebase Auth disponível, configurando observer...");
                 auth.onAuthStateChanged((user) => {
                     console.log("Estado de autenticação mudou:", user ? "Usuário logado" : "Usuário deslogado");
@@ -62,20 +62,29 @@ class AuthSystem {
         document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
         
         if (tab === 'login') {
-            document.getElementById('loginTab').classList.add('active');
-            document.getElementById('loginForm').classList.add('active');
+            const loginTab = document.getElementById('loginTab');
+            const loginForm = document.getElementById('loginForm');
+            if (loginTab) loginTab.classList.add('active');
+            if (loginForm) loginForm.classList.add('active');
         } else {
-            document.getElementById('registerTab').classList.add('active');
-            document.getElementById('registerForm').classList.add('active');
+            const registerTab = document.getElementById('registerTab');
+            const registerForm = document.getElementById('registerForm');
+            if (registerTab) registerTab.classList.add('active');
+            if (registerForm) registerForm.classList.add('active');
         }
     }
 
     async login(e) {
         e.preventDefault();
         
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
+        const email = document.getElementById('loginEmail')?.value;
+        const password = document.getElementById('loginPassword')?.value;
         const loginBtn = document.getElementById('loginBtn');
+
+        if (!email || !password) {
+            this.showError('Por favor, preencha todos os campos.');
+            return;
+        }
 
         if (!this.validateEmail(email)) {
             this.showError('Por favor, insira um e-mail válido.');
@@ -87,7 +96,7 @@ class AuthSystem {
         try {
             console.log("Tentando login...");
             
-            if (!window.auth) {
+            if (!window.auth || typeof auth.signInWithEmailAndPassword !== 'function') {
                 throw new Error("Serviço de autenticação não disponível");
             }
             
@@ -107,13 +116,18 @@ class AuthSystem {
     async register(e) {
         e.preventDefault();
         
-        const name = document.getElementById('registerName').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('registerConfirmPassword').value;
+        const name = document.getElementById('registerName')?.value;
+        const email = document.getElementById('registerEmail')?.value;
+        const password = document.getElementById('registerPassword')?.value;
+        const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
         const registerBtn = document.getElementById('registerBtn');
 
         // Validações
+        if (!name || !email || !password || !confirmPassword) {
+            this.showError('Por favor, preencha todos os campos.');
+            return;
+        }
+
         if (!name.trim()) {
             this.showError('Por favor, insira seu nome completo.');
             return;
@@ -139,7 +153,7 @@ class AuthSystem {
         try {
             console.log("Tentando criar conta...");
             
-            if (!window.auth) {
+            if (!window.auth || typeof auth.createUserWithEmailAndPassword !== 'function') {
                 throw new Error("Serviço de autenticação não disponível");
             }
             
@@ -148,7 +162,7 @@ class AuthSystem {
             console.log("Conta criada com sucesso:", this.user.email);
             
             // Salvar nome do usuário no Firestore (se disponível)
-            if (window.db) {
+            if (window.db && typeof db.collection === 'function') {
                 try {
                     await db.collection('users').doc(this.user.uid).set({
                         nome: name,
@@ -187,7 +201,7 @@ class AuthSystem {
         }
 
         try {
-            if (!window.auth) {
+            if (!window.auth || typeof auth.sendPasswordResetEmail !== 'function') {
                 throw new Error("Serviço de autenticação não disponível");
             }
             
@@ -200,10 +214,14 @@ class AuthSystem {
 
     async sair() {
         try {
-            // Salvar dados antes de sair
-            await this.salvarDadosUsuario();
+            console.log("Saindo da conta...");
             
-            if (window.auth) {
+            // Salvar dados antes de sair
+            if (window.dadosUsuario) {
+                await this.salvarDadosUsuario();
+            }
+            
+            if (window.auth && typeof auth.signOut === 'function') {
                 await auth.signOut();
             }
             
@@ -212,6 +230,7 @@ class AuthSystem {
             this.showSuccess('Você saiu da sua conta.');
         } catch (error) {
             console.error('Erro ao sair:', error);
+            this.showError('Erro ao sair da conta.');
         }
     }
 
@@ -222,7 +241,7 @@ class AuthSystem {
         console.log("Inicializando dados do usuário...");
 
         // Se Firestore não estiver disponível, usar localStorage
-        if (!window.db) {
+        if (!window.db || typeof db.collection !== 'function') {
             console.log("Firestore não disponível, usando localStorage");
             this.carregarDadosLocal();
             return;
@@ -244,7 +263,7 @@ class AuthSystem {
             }
 
             // Atualizar interface
-            if (window.atualizarDashboard) {
+            if (typeof window.atualizarDashboard === 'function') {
                 window.atualizarDashboard();
             }
         } catch (error) {
@@ -298,7 +317,7 @@ class AuthSystem {
         console.log("Carregando dados do usuário...");
 
         // Tentar Firestore primeiro
-        if (window.db) {
+        if (window.db && typeof db.collection === 'function') {
             try {
                 const userRef = db.collection('userData').doc(this.user.uid);
                 const doc = await userRef.get();
@@ -317,7 +336,7 @@ class AuthSystem {
                     }
 
                     // Atualizar interface
-                    if (window.atualizarDashboard) {
+                    if (typeof window.atualizarDashboard === 'function') {
                         window.atualizarDashboard();
                     }
                     return;
@@ -340,7 +359,7 @@ class AuthSystem {
         window.dadosUsuario.ultimaAtualizacao = new Date().toISOString();
 
         // Tentar salvar no Firestore
-        if (window.db) {
+        if (window.db && typeof db.collection === 'function') {
             try {
                 const userRef = db.collection('userData').doc(this.user.uid);
                 await userRef.set(window.dadosUsuario, { merge: true });
@@ -356,8 +375,10 @@ class AuthSystem {
 
     salvarDadosLocal() {
         try {
-            localStorage.setItem('planilhaFinanceira', JSON.stringify(window.dadosUsuario));
-            console.log('Dados salvos localmente');
+            if (window.dadosUsuario) {
+                localStorage.setItem('planilhaFinanceira', JSON.stringify(window.dadosUsuario));
+                console.log('Dados salvos localmente');
+            }
         } catch (error) {
             console.error('Erro ao salvar dados localmente:', error);
         }
@@ -371,7 +392,7 @@ class AuthSystem {
                 console.log('Dados carregados do localStorage');
                 
                 // Atualizar interface
-                if (window.atualizarDashboard) {
+                if (typeof window.atualizarDashboard === 'function') {
                     window.atualizarDashboard();
                 }
             } else {
@@ -392,17 +413,19 @@ class AuthSystem {
     }
 
     setLoading(button, isLoading) {
+        if (!button) return;
+        
         this.isLoading = isLoading;
         const btnText = button.querySelector('.btn-text');
         const btnLoading = button.querySelector('.btn-loading');
 
         if (isLoading) {
-            btnText.classList.add('hidden');
-            btnLoading.classList.remove('hidden');
+            if (btnText) btnText.classList.add('hidden');
+            if (btnLoading) btnLoading.classList.remove('hidden');
             button.disabled = true;
         } else {
-            btnText.classList.remove('hidden');
-            btnLoading.classList.add('hidden');
+            if (btnText) btnText.classList.remove('hidden');
+            if (btnLoading) btnLoading.classList.add('hidden');
             button.disabled = false;
         }
     }
@@ -412,33 +435,37 @@ class AuthSystem {
         
         let mensagem = 'Erro desconhecido. Tente novamente.';
         
-        switch (error.code) {
-            case 'auth/invalid-email':
-                mensagem = 'E-mail inválido.';
-                break;
-            case 'auth/user-disabled':
-                mensagem = 'Esta conta foi desativada.';
-                break;
-            case 'auth/user-not-found':
-                mensagem = 'Nenhuma conta encontrada com este e-mail.';
-                break;
-            case 'auth/wrong-password':
-                mensagem = 'Senha incorreta.';
-                break;
-            case 'auth/email-already-in-use':
-                mensagem = 'Este e-mail já está em uso.';
-                break;
-            case 'auth/weak-password':
-                mensagem = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
-                break;
-            case 'auth/network-request-failed':
-                mensagem = 'Erro de conexão. Verifique sua internet.';
-                break;
-            case 'auth/operation-not-allowed':
-                mensagem = 'Operação não permitida. Contate o suporte.';
-                break;
-            default:
-                mensagem = error.message || `Erro: ${error.code}`;
+        if (error.code) {
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    mensagem = 'E-mail inválido.';
+                    break;
+                case 'auth/user-disabled':
+                    mensagem = 'Esta conta foi desativada.';
+                    break;
+                case 'auth/user-not-found':
+                    mensagem = 'Nenhuma conta encontrada com este e-mail.';
+                    break;
+                case 'auth/wrong-password':
+                    mensagem = 'Senha incorreta.';
+                    break;
+                case 'auth/email-already-in-use':
+                    mensagem = 'Este e-mail já está em uso.';
+                    break;
+                case 'auth/weak-password':
+                    mensagem = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+                    break;
+                case 'auth/network-request-failed':
+                    mensagem = 'Erro de conexão. Verifique sua internet.';
+                    break;
+                case 'auth/operation-not-allowed':
+                    mensagem = 'Operação não permitida. Contate o suporte.';
+                    break;
+                default:
+                    mensagem = error.message || `Erro: ${error.code}`;
+            }
+        } else {
+            mensagem = error.message || 'Erro de autenticação.';
         }
         
         this.showError(mensagem);
@@ -535,6 +562,14 @@ document.addEventListener('DOMContentLoaded', function() {
 window.sair = function() {
     if (window.authSystem) {
         window.authSystem.sair();
+    } else {
+        console.error("Sistema de autenticação não disponível");
+        // Fallback: mostrar tela de login
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
     }
 };
 
