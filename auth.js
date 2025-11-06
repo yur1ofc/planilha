@@ -27,12 +27,12 @@ class AuthSystem {
     }
 
     async sair() {
-        try {
-            console.log("Saindo da conta...");
-            this.user = null;
-        } catch (error) {
-            console.error('Erro ao sair:', error);
-        }
+    try {
+        console.log("Saindo da conta...");
+        this.user = null;
+        localStorage.removeItem('currentUser'); // <-- ADICIONAR
+    } catch (error) {
+        console.error('Erro ao sair:', error);
     }
 }
 
@@ -48,3 +48,4 @@ window.sair = function() {
         window.financialManager.logout();
     }
 };
+
