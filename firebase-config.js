@@ -12,6 +12,11 @@ const firebaseConfig = {
 try {
     console.log("Inicializando Firebase...");
     
+    // Verificar se Firebase está disponível
+    if (typeof firebase === 'undefined') {
+        throw new Error("Firebase não carregado");
+    }
+    
     // Verificar se o Firebase já foi inicializado
     if (!firebase.apps.length) {
         const app = firebase.initializeApp(firebaseConfig);
@@ -45,14 +50,47 @@ try {
 
 } catch (error) {
     console.error("Erro ao inicializar Firebase:", error);
-    // Criar objetos vazios para evitar erros
+    
+    // Criar objetos mock para evitar erros
     window.auth = {
-        onAuthStateChanged: (callback) => callback(null),
-        signInWithEmailAndPassword: () => Promise.reject(new Error("Firebase não disponível")),
-        createUserWithEmailAndPassword: () => Promise.reject(new Error("Firebase não disponível")),
-        signOut: () => Promise.reject(new Error("Firebase não disponível")),
-        sendPasswordResetEmail: () => Promise.reject(new Error("Firebase não disponível"))
+        onAuthStateChanged: (callback) => {
+            console.log("Mock Auth: Observador de estado configurado");
+            callback(null); // Sem usuário logado
+            return () => {}; // Função de unsubscribe
+        },
+        signInWithEmailAndPassword: () => {
+            return Promise.reject(new Error("Firebase não disponível - Modo offline"));
+        },
+        createUserWithEmailAndPassword: () => {
+            return Promise.reject(new Error("Firebase não disponível - Modo offline"));
+        },
+        signOut: () => {
+            console.log("Mock Auth: Saindo");
+            return Promise.resolve();
+        },
+        sendPasswordResetEmail: () => {
+            return Promise.reject(new Error("Firebase não disponível - Modo offline"));
+        },
+        currentUser: null
     };
-    window.db = null;
-    window.firebase = null;
+    
+    window.db = {
+        collection: () => ({
+            doc: () => ({
+                set: () => Promise.reject(new Error("Firestore não disponível")),
+                get: () => Promise.reject(new Error("Firestore não disponível")),
+                update: () => Promise.reject(new Error("Firestore não disponível"))
+            })
+        })
+    };
+    
+    window.firebase = {
+        firestore: {
+            FieldValue: {
+                serverTimestamp: () => new Date()
+            }
+        }
+    };
+    
+    console.log("Modo offline ativado - Firebase não disponível");
 }
