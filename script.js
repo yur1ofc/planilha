@@ -2012,3 +2012,24 @@ window.atualizarDashboard = atualizarDashboard;
 window.atualizarTabelaMetas = atualizarTabelaMetas;
 window.atualizarTabelaCategorias = atualizarTabelaCategorias;
 window.atualizarListaRegras = atualizarListaRegras;
+
+// Debug: Verificar se o CSS está carregado
+console.log('CSS carregado:', document.styleSheets.length > 0);
+console.log('Estilos aplicados:', getComputedStyle(document.body).backgroundColor);
+
+// Verificar se todas as dependências estão carregadas
+console.log('Chart.js carregado:', typeof Chart !== 'undefined');
+console.log('jsPDF carregado:', typeof jspdf !== 'undefined');
+console.log('Firebase carregado:', typeof firebase !== 'undefined');
+
+// Forçar recarregamento do CSS se necessário
+function recarregarCSS() {
+    const links = document.querySelectorAll('link[rel="stylesheet"]');
+    links.forEach(link => {
+        const href = link.href.split('?')[0];
+        link.href = href + '?v=' + new Date().getTime();
+    });
+}
+
+// Se o design sumiu, execute no console: recarregarCSS()
+
