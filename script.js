@@ -9,9 +9,59 @@ class FinancialManager {
 
     init() {
         console.log("Iniciando Financial Manager...");
-        this.checkAuthentication();
         this.setupEventListeners();
         this.loadUserSettings();
+        this.checkAuthentication();
+    }
+
+    setupEventListeners() {
+        console.log("Configurando event listeners...");
+        
+        // Formulários de login/cadastro
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+        }
+        if (registerForm) {
+            registerForm.addEventListener('submit', (e) => this.handleRegister(e));
+        }
+        
+        // Formulários de dados
+        const formReceita = document.getElementById('formReceita');
+        const formDespesa = document.getElementById('formDespesa');
+        const formInvestimento = document.getElementById('formInvestimento');
+        const formMeta = document.getElementById('formMeta');
+        const profileForm = document.getElementById('profileForm');
+        
+        if (formReceita) formReceita.addEventListener('submit', (e) => this.salvarReceita(e));
+        if (formDespesa) formDespesa.addEventListener('submit', (e) => this.salvarDespesa(e));
+        if (formInvestimento) formInvestimento.addEventListener('submit', (e) => this.salvarInvestimento(e));
+        if (formMeta) formMeta.addEventListener('submit', (e) => this.salvarMeta(e));
+        if (profileForm) profileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.showNotification('Perfil atualizado com sucesso!', 'success');
+            this.fecharModal('profileModal');
+        });
+        
+        // Menu do usuário
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-info') && !e.target.closest('.user-menu')) {
+                const userMenu = document.getElementById('userMenu');
+                if (userMenu) userMenu.classList.remove('active');
+            }
+        });
+
+        // Fechar modais ao clicar fora
+        window.addEventListener('click', (event) => {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
     }
 
     // Sistema de Autenticação
@@ -33,28 +83,61 @@ class FinancialManager {
     }
 
     showLogin() {
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('appContainer').classList.add('hidden');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
     }
 
     showApp() {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('appContainer').classList.remove('hidden');
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appContainer) appContainer.classList.remove('hidden');
         this.updateUserInterface();
     }
 
     // Registro de Usuário
-    registerUser(userData) {
+    async handleRegister(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('registerName')?.value;
+        const nickname = document.getElementById('registerNickname')?.value;
+        const email = document.getElementById('registerEmail')?.value;
+        const password = document.getElementById('registerPassword')?.value;
+        const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
+
+        // Validações
+        if (!name || !email || !password || !confirmPassword) {
+            this.showNotification('Por favor, preencha todos os campos.', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showNotification('As senhas não coincidem!', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
+            return;
+        }
+
         // Verifica se o usuário já existe
-        if (this.users.find(user => user.email === userData.email)) {
+        if (this.users.find(user => user.email === email)) {
             this.showNotification('Este e-mail já está cadastrado!', 'error');
-            return false;
+            return;
         }
 
         // Cria novo usuário
         const newUser = {
             id: this.generateId(),
-            ...userData,
+            name: name,
+            nickname: nickname,
+            email: email,
+            password: password,
             createdAt: new Date().toISOString(),
             questionnaireCompleted: false,
             avatar: null,
@@ -72,11 +155,24 @@ class FinancialManager {
         this.saveUsers();
         
         // Login automático após cadastro
-        this.loginUser(userData.email, userData.password);
-        return true;
+        this.loginUser(email, password);
     }
 
     // Login do Usuário
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('loginEmail')?.value;
+        const password = document.getElementById('loginPassword')?.value;
+
+        if (!email || !password) {
+            this.showNotification('Por favor, preencha todos os campos.', 'error');
+            return;
+        }
+
+        this.loginUser(email, password);
+    }
+
     loginUser(email, password) {
         const user = this.users.find(u => u.email === email && u.password === password);
         if (user) {
@@ -217,7 +313,7 @@ class FinancialManager {
 
     // Dashboard e Navegação
     loadDashboard() {
-        this.showDashboardSection('overview');
+        this.showDashboardSection('visao-geral');
         this.updateDashboard();
     }
 
@@ -977,79 +1073,6 @@ class FinancialManager {
     }
 }
 
-// Event Listeners Globais
-function setupEventListeners() {
-    // Formulários de login/cadastro
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    
-    // Formulários de dados
-    const formReceita = document.getElementById('formReceita');
-    const formDespesa = document.getElementById('formDespesa');
-    const formInvestimento = document.getElementById('formInvestimento');
-    const formMeta = document.getElementById('formMeta');
-    const profileForm = document.getElementById('profileForm');
-    
-    if (formReceita) formReceita.addEventListener('submit', (e) => financialManager.salvarReceita(e));
-    if (formDespesa) formDespesa.addEventListener('submit', (e) => financialManager.salvarDespesa(e));
-    if (formInvestimento) formInvestimento.addEventListener('submit', (e) => financialManager.salvarInvestimento(e));
-    if (formMeta) formMeta.addEventListener('submit', (e) => financialManager.salvarMeta(e));
-    if (profileForm) profileForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        financialManager.showNotification('Perfil atualizado com sucesso!', 'success');
-        financialManager.fecharModal('profileModal');
-    });
-    
-    // Menu do usuário
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.user-info') && !e.target.closest('.user-menu')) {
-            const userMenu = document.getElementById('userMenu');
-            if (userMenu) userMenu.classList.remove('active');
-        }
-    });
-
-    // Fechar modais ao clicar fora
-    window.addEventListener('click', function(event) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-}
-
-function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    financialManager.loginUser(email, password);
-}
-
-function handleRegister(e) {
-    e.preventDefault();
-    const userData = {
-        name: document.getElementById('registerName').value,
-        nickname: document.getElementById('registerNickname').value,
-        email: document.getElementById('registerEmail').value,
-        password: document.getElementById('registerPassword').value
-    };
-    
-    if (userData.password !== document.getElementById('registerConfirmPassword').value) {
-        financialManager.showNotification('As senhas não coincidem!', 'error');
-        return;
-    }
-    
-    financialManager.registerUser(userData);
-}
-
 // Funções Globais
 let financialManager;
 
@@ -1198,7 +1221,7 @@ function gerarRelatorioPDF(tipo = 'completo') {
     financialManager.showNotification(`Relatório ${tipo} gerado com sucesso!`, 'success');
 }
 
-// Funções do Questionário (mantidas do código anterior)
+// Funções do Questionário
 let currentSection = 1;
 const totalSections = 6;
 
@@ -1261,7 +1284,6 @@ function prevSection(current) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Página carregada - Iniciando configuração...");
     financialManager = new FinancialManager();
-    setupEventListeners();
     
     // Configurar data padrão para hoje nos modais
     const hoje = new Date().toISOString().split('T')[0];
