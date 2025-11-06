@@ -10,6 +10,8 @@ const firebaseConfig = {
 
 // Initialize Firebase
 try {
+    console.log("Inicializando Firebase...");
+    
     // Verificar se o Firebase já foi inicializado
     if (!firebase.apps.length) {
         const app = firebase.initializeApp(firebaseConfig);
@@ -20,15 +22,16 @@ try {
 
     // Initialize Firebase Authentication and get a reference to the service
     const auth = firebase.auth();
+    console.log("Firebase Auth inicializado");
     
     // Initialize Cloud Firestore and get a reference to the service
     const db = firebase.firestore();
+    console.log("Firebase Firestore inicializado");
     
     // Configurações do Firestore para desenvolvimento
-    if (window.location.hostname === "localhost") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         db.settings({
-            experimentalForceLongPolling: true,
-            merge: true
+            experimentalForceLongPolling: true
         });
         console.log("Firestore configurado para desenvolvimento local");
     }
@@ -38,6 +41,18 @@ try {
     window.auth = auth;
     window.db = db;
 
+    console.log("Firebase configurado com sucesso!");
+
 } catch (error) {
     console.error("Erro ao inicializar Firebase:", error);
+    // Criar objetos vazios para evitar erros
+    window.auth = {
+        onAuthStateChanged: (callback) => callback(null),
+        signInWithEmailAndPassword: () => Promise.reject(new Error("Firebase não disponível")),
+        createUserWithEmailAndPassword: () => Promise.reject(new Error("Firebase não disponível")),
+        signOut: () => Promise.reject(new Error("Firebase não disponível")),
+        sendPasswordResetEmail: () => Promise.reject(new Error("Firebase não disponível"))
+    };
+    window.db = null;
+    window.firebase = null;
 }
