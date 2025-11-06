@@ -14,15 +14,9 @@ try {
         const app = firebase.initializeApp(firebaseConfig);
         console.log("Firebase inicializado com sucesso");
         
-        // Initialize Firebase Authentication and get a reference to the service
         const auth = firebase.auth();
-        console.log("Firebase Auth inicializado");
-        
-        // Initialize Cloud Firestore and get a reference to the service
         const db = firebase.firestore();
-        console.log("Firebase Firestore inicializado");
         
-        // Export for use in other files
         window.firebase = firebase;
         window.auth = auth;
         window.db = db;
