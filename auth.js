@@ -14,8 +14,9 @@ class AuthSystem {
         setTimeout(() => {
             this.setupEventListeners();
             
-            // Verificar se usuário já está logado
-            if (auth) {
+            // Verificar se Firebase Auth está disponível
+            if (window.auth) {
+                console.log("Firebase Auth disponível, configurando observer...");
                 auth.onAuthStateChanged((user) => {
                     console.log("Estado de autenticação mudou:", user ? "Usuário logado" : "Usuário deslogado");
                     if (user) {
@@ -85,6 +86,11 @@ class AuthSystem {
 
         try {
             console.log("Tentando login...");
+            
+            if (!window.auth) {
+                throw new Error("Serviço de autenticação não disponível");
+            }
+            
             const userCredential = await auth.signInWithEmailAndPassword(email, password);
             this.user = userCredential.user;
             console.log("Login bem-sucedido:", this.user.email);
@@ -132,12 +138,17 @@ class AuthSystem {
 
         try {
             console.log("Tentando criar conta...");
+            
+            if (!window.auth) {
+                throw new Error("Serviço de autenticação não disponível");
+            }
+            
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             this.user = userCredential.user;
             console.log("Conta criada com sucesso:", this.user.email);
             
             // Salvar nome do usuário no Firestore (se disponível)
-            if (db) {
+            if (window.db) {
                 try {
                     await db.collection('users').doc(this.user.uid).set({
                         nome: name,
@@ -176,6 +187,10 @@ class AuthSystem {
         }
 
         try {
+            if (!window.auth) {
+                throw new Error("Serviço de autenticação não disponível");
+            }
+            
             await auth.sendPasswordResetEmail(email);
             this.showSuccess('E-mail de redefinição enviado! Verifique sua caixa de entrada.');
         } catch (error) {
@@ -187,7 +202,11 @@ class AuthSystem {
         try {
             // Salvar dados antes de sair
             await this.salvarDadosUsuario();
-            await auth.signOut();
+            
+            if (window.auth) {
+                await auth.signOut();
+            }
+            
             this.user = null;
             this.showLogin();
             this.showSuccess('Você saiu da sua conta.');
@@ -203,7 +222,7 @@ class AuthSystem {
         console.log("Inicializando dados do usuário...");
 
         // Se Firestore não estiver disponível, usar localStorage
-        if (!db) {
+        if (!window.db) {
             console.log("Firestore não disponível, usando localStorage");
             this.carregarDadosLocal();
             return;
@@ -279,7 +298,7 @@ class AuthSystem {
         console.log("Carregando dados do usuário...");
 
         // Tentar Firestore primeiro
-        if (db) {
+        if (window.db) {
             try {
                 const userRef = db.collection('userData').doc(this.user.uid);
                 const doc = await userRef.get();
@@ -321,7 +340,7 @@ class AuthSystem {
         window.dadosUsuario.ultimaAtualizacao = new Date().toISOString();
 
         // Tentar salvar no Firestore
-        if (db) {
+        if (window.db) {
             try {
                 const userRef = db.collection('userData').doc(this.user.uid);
                 await userRef.set(window.dadosUsuario, { merge: true });
@@ -419,7 +438,7 @@ class AuthSystem {
                 mensagem = 'Operação não permitida. Contate o suporte.';
                 break;
             default:
-                mensagem = `Erro: ${error.message}`;
+                mensagem = error.message || `Erro: ${error.code}`;
         }
         
         this.showError(mensagem);
