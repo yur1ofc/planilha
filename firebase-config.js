@@ -1,4 +1,4 @@
-// Firebase configuration (para uso futuro)
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyA9V9Ch6pTSKhS-CqHKhxztMI6J4863cjI",
     authDomain: "planilha-d1bb2.firebaseapp.com",
@@ -10,17 +10,26 @@ const firebaseConfig = {
 
 // Inicialização condicional do Firebase
 try {
-    if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
-        const app = firebase.initializeApp(firebaseConfig);
-        console.log("Firebase inicializado com sucesso");
-        
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        window.firebase = firebase;
-        window.auth = auth;
-        window.db = db;
+    if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+            const app = firebase.initializeApp(firebaseConfig);
+            console.log("Firebase inicializado com sucesso");
+            
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            
+            console.log("Firebase Auth inicializado");
+            console.log("Firebase Firestore inicializado");
+            
+            window.firebase = firebase;
+            window.auth = auth;
+            window.db = db;
+        } else {
+            console.log("Firebase já inicializado");
+        }
+    } else {
+        console.log("Firebase não disponível - Modo offline ativado");
     }
 } catch (error) {
-    console.log("Firebase não disponível - Modo offline ativado");
+    console.log("Firebase não disponível - Modo offline ativado", error);
 }
