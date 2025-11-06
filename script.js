@@ -39,11 +39,7 @@ class FinancialManager {
         if (formDespesa) formDespesa.addEventListener('submit', (e) => this.salvarDespesa(e));
         if (formInvestimento) formInvestimento.addEventListener('submit', (e) => this.salvarInvestimento(e));
         if (formMeta) formMeta.addEventListener('submit', (e) => this.salvarMeta(e));
-        if (profileForm) profileForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.showNotification('Perfil atualizado com sucesso!', 'success');
-            this.fecharModal('profileModal');
-        });
+        if (profileForm) profileForm.addEventListener('submit', (e) => this.handleProfileUpdate(e));
         
         // Menu do usuário
         document.addEventListener('click', (e) => {
@@ -70,13 +66,7 @@ class FinancialManager {
         if (savedUser) {
             this.currentUser = JSON.parse(savedUser);
             this.showApp();
-            
-            // Verifica se é um novo usuário (sem questionário respondido)
-            if (!this.currentUser.questionnaireCompleted) {
-                this.showQuestionnaire();
-            } else {
-                this.loadDashboard();
-            }
+            this.loadDashboard();
         } else {
             this.showLogin();
         }
@@ -139,7 +129,6 @@ class FinancialManager {
             email: email,
             password: password,
             createdAt: new Date().toISOString(),
-            questionnaireCompleted: false,
             avatar: null,
             receitas: [],
             despesas: [],
@@ -179,13 +168,7 @@ class FinancialManager {
             this.currentUser = user;
             localStorage.setItem('currentUser', JSON.stringify(user));
             this.showApp();
-            
-            if (!user.questionnaireCompleted) {
-                this.showQuestionnaire();
-            } else {
-                this.loadDashboard();
-            }
-            
+            this.loadDashboard();
             this.showNotification(`Bem-vindo de volta, ${user.nickname || user.name}!`, 'success');
             return true;
         } else {
@@ -225,6 +208,25 @@ class FinancialManager {
         if (profileName) profileName.value = this.currentUser.name;
         if (profileNickname) profileNickname.value = this.currentUser.nickname || '';
         if (profileEmail) profileEmail.value = this.currentUser.email;
+    }
+
+    handleProfileUpdate(e) {
+        e.preventDefault();
+        
+        if (!this.currentUser) return;
+        
+        const name = document.getElementById('profileName').value;
+        const nickname = document.getElementById('profileNickname').value;
+        const email = document.getElementById('profileEmail').value;
+        
+        this.currentUser.name = name;
+        this.currentUser.nickname = nickname;
+        this.currentUser.email = email;
+        
+        this.saveCurrentUser();
+        this.updateUserInterface();
+        this.showNotification('Perfil atualizado com sucesso!', 'success');
+        this.fecharModal('profileModal');
     }
 
     // Sistema de Avatar
@@ -277,43 +279,9 @@ class FinancialManager {
         reader.readAsDataURL(file);
     }
 
-    // Questionário Financeiro
-    showQuestionnaire() {
-        document.getElementById('questionnaireContainer').classList.remove('hidden');
-        document.getElementById('dashboard').classList.add('hidden');
-        this.setupQuestionnaireEvents();
-    }
-
-    setupQuestionnaireEvents() {
-        // Configurar eventos para as opções do questionário
-        document.querySelectorAll('.option').forEach(option => {
-            option.addEventListener('click', function() {
-                const optionsContainer = this.closest('.options');
-                if (!optionsContainer) return;
-                
-                const siblings = optionsContainer.querySelectorAll('.option');
-                siblings.forEach(sibling => {
-                    sibling.classList.remove('selected');
-                });
-                
-                this.classList.add('selected');
-            });
-        });
-    }
-
-    completeQuestionnaire() {
-        this.currentUser.questionnaireCompleted = true;
-        this.saveCurrentUser();
-        
-        document.getElementById('questionnaireContainer').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        this.loadDashboard();
-        this.showNotification('Questionário concluído! Personalizando sua experiência...', 'success');
-    }
-
     // Dashboard e Navegação
     loadDashboard() {
-        this.showDashboardSection('visao-geral');
+        this.showDashboardSection('overview');
         this.updateDashboard();
     }
 
@@ -328,37 +296,63 @@ class FinancialManager {
             sidebarItem.classList.add('active');
         }
 
-        // Atualiza título
+        // Mapeia as seções da sidebar para as tabs do dashboard
+        const sectionMap = {
+            'overview': 'visao-geral',
+            'transactions': 'receitas',
+            'budget': 'despesas',
+            'goals': 'metas',
+            'investments': 'investimentos',
+            'reports': 'relatorios'
+        };
+
+        const targetTab = sectionMap[section] || 'visao-geral';
+        this.showDashboardTab(targetTab);
         this.updateDashboardTitle(section);
-        
-        // Atualiza conteúdo da seção
-        document.querySelectorAll('.dashboard-section').forEach(sec => {
-            sec.classList.remove('active');
+    }
+
+    showDashboardTab(tabId) {
+        // Remove active de todas as tabs
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.classList.remove('active');
         });
         
-        const sectionElement = document.getElementById(section);
-        if (sectionElement) {
-            sectionElement.classList.add('active');
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+
+        // Ativa a tab selecionada
+        const tabElement = document.getElementById(tabId);
+        if (tabElement) {
+            tabElement.classList.add('active');
         }
+        
+        // Ativa o botão correspondente
+        const buttons = document.querySelectorAll('.tab-button');
+        buttons.forEach(button => {
+            if (button.getAttribute('onclick')?.includes(tabId)) {
+                button.classList.add('active');
+            }
+        });
     }
 
     updateDashboardTitle(section) {
         const titles = {
-            'visao-geral': 'Visão Geral',
-            'receitas': 'Receitas',
-            'despesas': 'Despesas',
-            'investimentos': 'Investimentos',
-            'metas': 'Metas',
-            'relatorios': 'Relatórios'
+            'overview': 'Visão Geral',
+            'transactions': 'Transações',
+            'budget': 'Orçamento',
+            'goals': 'Metas',
+            'investments': 'Investimentos',
+            'reports': 'Relatórios'
         };
         
         const subtitles = {
-            'visao-geral': 'Resumo completo das suas finanças',
-            'receitas': 'Gerencie suas entradas',
-            'despesas': 'Controle seus gastos',
-            'investimentos': 'Monitore seus investimentos',
-            'metas': 'Acompanhe seus objetivos',
-            'relatorios': 'Relatórios detalhados'
+            'overview': 'Resumo completo das suas finanças',
+            'transactions': 'Gerencie suas entradas e saídas',
+            'budget': 'Controle seus gastos',
+            'goals': 'Acompanhe seus objetivos',
+            'investments': 'Monitore seus investimentos',
+            'reports': 'Relatórios detalhados'
         };
 
         const titleElement = document.getElementById('dashboardTitle');
@@ -849,12 +843,10 @@ class FinancialManager {
             document.getElementById('investimentoValor').value = investimento.valor || '';
             document.getElementById('investimentoTipo').value = investimento.tipo || '';
             document.getElementById('investimentoRentabilidade').value = investimento.rentabilidade || '';
-            document.getElementById('investimentoData').value = investimento.data || '';
         } else {
             titulo.textContent = 'Novo Investimento';
             form.reset();
             document.getElementById('investimentoId').value = '';
-            document.getElementById('investimentoData').value = new Date().toISOString().split('T')[0];
         }
         
         modal.style.display = 'flex';
@@ -923,7 +915,12 @@ class FinancialManager {
             data.push(1);
         }
 
-        new Chart(ctx, {
+        // Destruir gráfico anterior se existir
+        if (ctx.chart) {
+            ctx.chart.destroy();
+        }
+
+        ctx.chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: labels,
@@ -955,7 +952,12 @@ class FinancialManager {
         const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
         const patrimonios = [1500, 1800, 2200, 2500, 2800, 3200];
 
-        new Chart(ctx, {
+        // Destruir gráfico anterior se existir
+        if (ctx.chart) {
+            ctx.chart.destroy();
+        }
+
+        ctx.chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: meses,
@@ -1140,27 +1142,7 @@ function showDashboardSection(section) {
 }
 
 function showDashboardTab(tabId) {
-    document.querySelectorAll('.dashboard-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    const tabElement = document.getElementById(tabId);
-    if (tabElement) {
-        tabElement.classList.add('active');
-    }
-    
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    
-    // Encontrar o botão correto para ativar
-    const buttons = document.querySelectorAll('.tab-button');
-    for (let i = 0; i < buttons.length; i++) {
-        if (buttons[i].getAttribute('onclick')?.includes(tabId)) {
-            buttons[i].classList.add('active');
-            break;
-        }
-    }
+    financialManager.showDashboardTab(tabId);
 }
 
 function abrirModalReceita() {
@@ -1192,15 +1174,6 @@ function saveSettings() {
     financialManager.fecharModal('settingsModal');
 }
 
-function finalizarQuestionario() {
-    financialManager.completeQuestionnaire();
-}
-
-function reiniciarQuestionario() {
-    document.getElementById('dashboard').classList.add('hidden');
-    document.getElementById('questionnaireContainer').classList.remove('hidden');
-}
-
 function exportarDados() {
     const data = {
         usuario: financialManager.currentUser,
@@ -1219,65 +1192,6 @@ function exportarDados() {
 
 function gerarRelatorioPDF(tipo = 'completo') {
     financialManager.showNotification(`Relatório ${tipo} gerado com sucesso!`, 'success');
-}
-
-// Funções do Questionário
-let currentSection = 1;
-const totalSections = 6;
-
-function updateProgress() {
-    const progress = (currentSection / totalSections) * 100;
-    const progressElement = document.getElementById('progressBar');
-    if (progressElement) {
-        progressElement.style.width = `${progress}%`;
-    }
-}
-
-function showSection(sectionNumber) {
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
-    });
-    const sectionElement = document.getElementById(`section${sectionNumber}`);
-    if (sectionElement) {
-        sectionElement.classList.add('active');
-    }
-    updateProgress();
-}
-
-function selectOption(element) {
-    const optionsContainer = element.closest('.options');
-    if (!optionsContainer) return;
-    
-    const siblings = optionsContainer.querySelectorAll('.option');
-    siblings.forEach(sibling => {
-        sibling.classList.remove('selected');
-    });
-    
-    element.classList.add('selected');
-}
-
-function nextSection(current) {
-    const currentSectionElement = document.getElementById(`section${current}`);
-    if (!currentSectionElement) return;
-    
-    const optionsSelected = currentSectionElement.querySelectorAll('.option.selected');
-    
-    if (optionsSelected.length === 0 && current <= 3) {
-        alert('Por favor, selecione uma resposta antes de continuar.');
-        return;
-    }
-    
-    if (current < totalSections) {
-        currentSection = current + 1;
-        showSection(currentSection);
-    }
-}
-
-function prevSection(current) {
-    if (current > 1) {
-        currentSection = current - 1;
-        showSection(currentSection);
-    }
 }
 
 // Inicialização
