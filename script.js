@@ -18,7 +18,13 @@ class FinancialManager {
         this.loadUserSettings();
         await this.checkAuthentication();
     }
-
+// Adicione este método à classe FinancialManager
+handleAuthSuccess(userData) {
+    console.log("🎯 Usuário autenticado com sucesso, carregando dados...");
+    this.currentUser = userData;
+    this.showApp();
+    this.loadDashboard();
+}
     // ✅ SISTEMA DE AUTENTICAÇÃO ATUALIZADO COM FIREBASE
     async checkAuthentication() {
         if (this.firebaseAvailable && this.auth) {
@@ -1443,3 +1449,4 @@ document.addEventListener('DOMContentLoaded', function() {
         
     }, 100);
 });
+
