@@ -1,34 +1,458 @@
-// Sistema de Gerenciamento Financeiro Moderno
+// Sistema de Gerenciamento Financeiro Moderno com Firebase
 class FinancialManager {
     constructor() {
         this.currentUser = null;
         this.users = JSON.parse(localStorage.getItem('users')) || [];
         this.userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
-        this.firebaseAvailable = false;
+        this.firebaseAvailable = window.firebaseAvailable || false;
+        this.db = window.db;
+        this.auth = window.auth;
         this.init();
     }
 
     async init() {
         console.log("Iniciando Financial Manager...");
-        await this.checkFirebase();
+        console.log(this.firebaseAvailable ? "🔥 Modo Firebase ativo" : "📴 Modo offline ativo");
+        
         this.setupEventListeners();
         this.loadUserSettings();
-        this.checkAuthentication();
+        await this.checkAuthentication();
     }
 
-    async checkFirebase() {
-        try {
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                this.firebaseAvailable = true;
-                console.log("Firebase disponível");
+    // ✅ SISTEMA DE AUTENTICAÇÃO ATUALIZADO COM FIREBASE
+    async checkAuthentication() {
+        if (this.firebaseAvailable && this.auth) {
+            // Verificar se há usuário autenticado no Firebase
+            const firebaseUser = this.auth.currentUser;
+            if (firebaseUser) {
+                console.log("👤 Usuário Firebase autenticado:", firebaseUser.email);
+                await this.loadUserFromFirebase(firebaseUser.uid);
             } else {
-                console.log("Firebase não disponível - Modo offline");
+                // Verificar localStorage como fallback
+                this.checkLocalAuthentication();
             }
-        } catch (error) {
-            console.log("Erro ao verificar Firebase:", error);
+        } else {
+            this.checkLocalAuthentication();
         }
     }
 
+    async loadUserFromFirebase(uid) {
+        try {
+            console.log("📥 Carregando dados do Firebase para usuário:", uid);
+            const userDoc = await this.db.collection('users').doc(uid).get();
+            
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                this.currentUser = {
+                    id: uid,
+                    ...userData
+                };
+                console.log("✅ Dados do usuário carregados do Firebase");
+                
+                // Salvar também no localStorage para fallback
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                
+                this.showApp();
+                this.loadDashboard();
+            } else {
+                console.log("❌ Usuário não encontrado no Firestore");
+                this.showLogin();
+            }
+        } catch (error) {
+            console.error("❌ Erro ao carregar usuário do Firebase:", error);
+            this.checkLocalAuthentication(); // Fallback para localStorage
+        }
+    }
+
+    checkLocalAuthentication() {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            this.currentUser = JSON.parse(savedUser);
+            this.showApp();
+            this.loadDashboard();
+        } else {
+            this.showLogin();
+        }
+    }
+
+    showLogin() {
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
+    }
+
+    showApp() {
+        const loginScreen = document.getElementById('loginScreen');
+        const appContainer = document.getElementById('appContainer');
+        
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appContainer) appContainer.classList.remove('hidden');
+        this.updateUserInterface();
+    }
+
+    // ✅ REGISTRO ATUALIZADO COM FIREBASE
+    async handleRegister(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('registerName')?.value;
+        const nickname = document.getElementById('registerNickname')?.value;
+        const email = document.getElementById('registerEmail')?.value;
+        const password = document.getElementById('registerPassword')?.value;
+        const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
+
+        // Validações
+        if (!name || !email || !password || !confirmPassword) {
+            this.showNotification('Por favor, preencha todos os campos.', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showNotification('As senhas não coincidem!', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
+            return;
+        }
+
+        // Verificar se o usuário já existe (modo offline)
+        if (this.users.find(user => user.email === email)) {
+            this.showNotification('Este e-mail já está cadastrado!', 'error');
+            return;
+        }
+
+        const userData = { name, nickname, email, password };
+
+        if (this.firebaseAvailable && this.auth) {
+            await this.registerWithFirebase(userData);
+        } else {
+            this.registerLocal(userData);
+        }
+    }
+
+    async registerWithFirebase(userData) {
+        try {
+            console.log("📝 Tentando registrar com Firebase...");
+            
+            // Criar usuário no Firebase Auth
+            const userCredential = await this.auth.createUserWithEmailAndPassword(
+                userData.email, 
+                userData.password
+            );
+            
+            const user = userCredential.user;
+            
+            // Atualizar perfil do usuário
+            await user.updateProfile({
+                displayName: userData.nickname || userData.name
+            });
+
+            // Preparar dados para Firestore
+            const firestoreUserData = {
+                name: userData.name,
+                nickname: userData.nickname,
+                email: userData.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                avatar: null,
+                receitas: [],
+                despesas: [],
+                investimentos: [],
+                metas: [],
+                settings: {
+                    theme: 'light',
+                    currency: 'BRL'
+                }
+            };
+
+            // Criar documento no Firestore
+            await this.db.collection('users').doc(user.uid).set(firestoreUserData);
+
+            console.log("✅ Usuário registrado com sucesso no Firebase");
+            
+            // Carregar dados do usuário
+            this.currentUser = {
+                id: user.uid,
+                ...firestoreUserData
+            };
+            
+            // Salvar também no localStorage
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            
+            this.showNotification(`Conta criada com sucesso! Bem-vindo, ${userData.name}!`, 'success');
+            this.showApp();
+            this.loadDashboard();
+
+        } catch (error) {
+            console.error("❌ Erro no registro Firebase:", error);
+            const errorMsg = this.getFirebaseError(error);
+            this.showNotification(errorMsg, 'error');
+        }
+    }
+
+    registerLocal(userData) {
+        try {
+            // Código existente para modo offline
+            const newUser = {
+                id: this.generateId(),
+                name: userData.name,
+                nickname: userData.nickname,
+                email: userData.email,
+                password: userData.password,
+                createdAt: new Date().toISOString(),
+                avatar: null,
+                receitas: [],
+                despesas: [],
+                investimentos: [],
+                metas: [],
+                settings: {
+                    theme: 'light',
+                    currency: 'BRL'
+                }
+            };
+
+            this.users.push(newUser);
+            this.saveUsers();
+            
+            // Login automático após cadastro
+            this.loginUser(userData.email, userData.password);
+            
+        } catch (error) {
+            console.error("❌ Erro no registro local:", error);
+            this.showNotification('Erro ao criar conta', 'error');
+        }
+    }
+
+    // ✅ LOGIN ATUALIZADO COM FIREBASE
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('loginEmail')?.value;
+        const password = document.getElementById('loginPassword')?.value;
+
+        if (!email || !password) {
+            this.showNotification('Por favor, preencha todos os campos.', 'error');
+            return;
+        }
+
+        if (this.firebaseAvailable && this.auth) {
+            await this.loginWithFirebase(email, password);
+        } else {
+            this.loginUser(email, password);
+        }
+    }
+
+    async loginWithFirebase(email, password) {
+        try {
+            console.log("🔑 Tentando login com Firebase...");
+            
+            const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            console.log("✅ Login Firebase bem-sucedido:", user.email);
+            
+            // Carregar dados do Firestore
+            await this.loadUserFromFirebase(user.uid);
+            
+            this.showNotification(`Bem-vindo de volta, ${user.displayName || 'Usuário'}!`, 'success');
+
+        } catch (error) {
+            console.error("❌ Erro no login Firebase:", error);
+            const errorMsg = this.getFirebaseError(error);
+            this.showNotification(errorMsg, 'error');
+        }
+    }
+
+    loginUser(email, password) {
+        const user = this.users.find(u => u.email === email && u.password === password);
+        if (user) {
+            this.currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            this.showApp();
+            this.loadDashboard();
+            this.showNotification(`Bem-vindo de volta, ${user.nickname || user.name}!`, 'success');
+            return true;
+        } else {
+            this.showNotification('E-mail ou senha incorretos!', 'error');
+            return false;
+        }
+    }
+
+    // ✅ LOGOUT ATUALIZADO
+    async logout() {
+        try {
+            if (this.firebaseAvailable && this.auth) {
+                await this.auth.signOut();
+                console.log("🚪 Logout do Firebase realizado");
+            }
+            
+            this.currentUser = null;
+            localStorage.removeItem('currentUser');
+            this.showLogin();
+            this.showNotification('Você saiu da sua conta', 'info');
+            
+        } catch (error) {
+            console.error('❌ Erro ao sair:', error);
+            this.showNotification('Erro ao sair da conta', 'error');
+        }
+    }
+
+    // ✅ SALVAR DADOS ATUALIZADO COM FIREBASE
+    async saveCurrentUser() {
+        try {
+            if (this.firebaseAvailable && this.currentUser?.id) {
+                // Salvar no Firestore
+                const userData = { ...this.currentUser };
+                delete userData.id; // Remover ID pois é o documento ID
+                
+                await this.db.collection('users').doc(this.currentUser.id).set(userData, { merge: true });
+                console.log("✅ Dados salvos no Firebase");
+            }
+            
+            // Sempre salvar no localStorage também (fallback)
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            
+            // Atualizar também na lista de usuários (modo offline)
+            const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
+            if (userIndex !== -1) {
+                this.users[userIndex] = this.currentUser;
+                this.saveUsers();
+            }
+            
+        } catch (error) {
+            console.error("❌ Erro ao salvar dados:", error);
+            // Fallback para localStorage apenas
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        }
+    }
+
+    // ✅ MÉTODOS CRUD ATUALIZADOS
+    async salvarReceita(e) {
+        if (e) e.preventDefault();
+        
+        const id = document.getElementById('receitaId')?.value;
+        const receita = {
+            descricao: document.getElementById('receitaDescricao')?.value || '',
+            valor: parseFloat(document.getElementById('receitaValor')?.value) || 0,
+            categoria: document.getElementById('receitaCategoria')?.value || '',
+            data: document.getElementById('receitaData')?.value || new Date().toISOString().split('T')[0],
+            id: this.generateId()
+        };
+        
+        if (!this.currentUser.receitas) this.currentUser.receitas = [];
+        
+        if (id === '' || id === null) {
+            this.currentUser.receitas.push(receita);
+        } else {
+            this.currentUser.receitas[id] = receita;
+        }
+        
+        await this.saveCurrentUser();
+        this.fecharModal('modalReceita');
+        this.updateDashboard();
+        this.showNotification('Receita salva com sucesso!', 'success');
+    }
+
+    async salvarDespesa(e) {
+        if (e) e.preventDefault();
+        
+        const id = document.getElementById('despesaId')?.value;
+        const despesa = {
+            descricao: document.getElementById('despesaDescricao')?.value || '',
+            valor: parseFloat(document.getElementById('despesaValor')?.value) || 0,
+            categoria: document.getElementById('despesaCategoria')?.value || '',
+            data: document.getElementById('despesaData')?.value || new Date().toISOString().split('T')[0],
+            id: this.generateId()
+        };
+        
+        if (!this.currentUser.despesas) this.currentUser.despesas = [];
+        
+        if (id === '' || id === null) {
+            this.currentUser.despesas.push(despesa);
+        } else {
+            this.currentUser.despesas[id] = despesa;
+        }
+        
+        await this.saveCurrentUser();
+        this.fecharModal('modalDespesa');
+        this.updateDashboard();
+        this.showNotification('Despesa salva com sucesso!', 'success');
+    }
+
+    async salvarInvestimento(e) {
+        if (e) e.preventDefault();
+        
+        const id = document.getElementById('investimentoId')?.value;
+        const investimento = {
+            descricao: document.getElementById('investimentoDescricao')?.value || '',
+            valor: parseFloat(document.getElementById('investimentoValor')?.value) || 0,
+            tipo: document.getElementById('investimentoTipo')?.value || '',
+            rentabilidade: document.getElementById('investimentoRentabilidade')?.value ? 
+                parseFloat(document.getElementById('investimentoRentabilidade')?.value) : null,
+            data: document.getElementById('investimentoData')?.value || new Date().toISOString().split('T')[0],
+            id: this.generateId()
+        };
+        
+        if (!this.currentUser.investimentos) this.currentUser.investimentos = [];
+        
+        if (id === '' || id === null) {
+            this.currentUser.investimentos.push(investimento);
+        } else {
+            this.currentUser.investimentos[id] = investimento;
+        }
+        
+        await this.saveCurrentUser();
+        this.fecharModal('modalInvestimento');
+        this.updateDashboard();
+        this.showNotification('Investimento salvo com sucesso!', 'success');
+    }
+
+    async salvarMeta(e) {
+        if (e) e.preventDefault();
+        
+        const id = document.getElementById('metaId')?.value;
+        const meta = {
+            descricao: document.getElementById('metaDescricao')?.value || '',
+            valor: parseFloat(document.getElementById('metaValor')?.value) || 0,
+            data: document.getElementById('metaData')?.value || '',
+            progresso: 0,
+            id: this.generateId()
+        };
+        
+        if (!this.currentUser.metas) this.currentUser.metas = [];
+        
+        if (id === '' || id === null) {
+            this.currentUser.metas.push(meta);
+        } else {
+            meta.progresso = this.currentUser.metas[id].progresso || 0;
+            this.currentUser.metas[id] = meta;
+        }
+        
+        await this.saveCurrentUser();
+        this.fecharModal('modalMeta');
+        this.atualizarTabelaMetas();
+        this.showNotification('Meta salva com sucesso!', 'success');
+    }
+
+    // 🔧 MÉTODOS DE ERRO DO FIREBASE
+    getFirebaseError(error) {
+        const errorMessages = {
+            'auth/email-already-in-use': 'Este e-mail já está em uso.',
+            'auth/invalid-email': 'E-mail inválido.',
+            'auth/operation-not-allowed': 'Operação não permitida.',
+            'auth/weak-password': 'Senha muito fraca.',
+            'auth/user-disabled': 'Esta conta foi desativada.',
+            'auth/user-not-found': 'Usuário não encontrado.',
+            'auth/wrong-password': 'Senha incorreta.',
+            'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.'
+        };
+        
+        return errorMessages[error.code] || 'Erro desconhecido. Tente novamente.';
+    }
+
+    // 🎯 MANTENHA TODOS OS OUTROS MÉTODOS EXISTENTES (sem alterações)
     setupEventListeners() {
         console.log("Configurando event listeners...");
         
@@ -87,131 +511,6 @@ class FinancialManager {
                 }
             });
         }
-    }
-
-    // Sistema de Autenticação
-    checkAuthentication() {
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            this.currentUser = JSON.parse(savedUser);
-            this.showApp();
-            this.loadDashboard();
-        } else {
-            this.showLogin();
-        }
-    }
-
-    showLogin() {
-        const loginScreen = document.getElementById('loginScreen');
-        const appContainer = document.getElementById('appContainer');
-        
-        if (loginScreen) loginScreen.classList.remove('hidden');
-        if (appContainer) appContainer.classList.add('hidden');
-    }
-
-    showApp() {
-        const loginScreen = document.getElementById('loginScreen');
-        const appContainer = document.getElementById('appContainer');
-        
-        if (loginScreen) loginScreen.classList.add('hidden');
-        if (appContainer) appContainer.classList.remove('hidden');
-        this.updateUserInterface();
-    }
-
-    // Registro de Usuário
-    async handleRegister(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('registerName')?.value;
-        const nickname = document.getElementById('registerNickname')?.value;
-        const email = document.getElementById('registerEmail')?.value;
-        const password = document.getElementById('registerPassword')?.value;
-        const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
-
-        // Validações
-        if (!name || !email || !password || !confirmPassword) {
-            this.showNotification('Por favor, preencha todos os campos.', 'error');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            this.showNotification('As senhas não coincidem!', 'error');
-            return;
-        }
-
-        if (password.length < 6) {
-            this.showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
-            return;
-        }
-
-        // Verifica se o usuário já existe
-        if (this.users.find(user => user.email === email)) {
-            this.showNotification('Este e-mail já está cadastrado!', 'error');
-            return;
-        }
-
-        // Cria novo usuário
-        const newUser = {
-            id: this.generateId(),
-            name: name,
-            nickname: nickname,
-            email: email,
-            password: password,
-            createdAt: new Date().toISOString(),
-            avatar: null,
-            receitas: [],
-            despesas: [],
-            investimentos: [],
-            metas: [],
-            settings: {
-                theme: 'light',
-                currency: 'BRL'
-            }
-        };
-
-        this.users.push(newUser);
-        this.saveUsers();
-        
-        // Login automático após cadastro
-        this.loginUser(email, password);
-    }
-
-    // Login do Usuário
-    async handleLogin(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('loginEmail')?.value;
-        const password = document.getElementById('loginPassword')?.value;
-
-        if (!email || !password) {
-            this.showNotification('Por favor, preencha todos os campos.', 'error');
-            return;
-        }
-
-        this.loginUser(email, password);
-    }
-
-    loginUser(email, password) {
-        const user = this.users.find(u => u.email === email && u.password === password);
-        if (user) {
-            this.currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            this.showApp();
-            this.loadDashboard();
-            this.showNotification(`Bem-vindo de volta, ${user.nickname || user.name}!`, 'success');
-            return true;
-        } else {
-            this.showNotification('E-mail ou senha incorretos!', 'error');
-            return false;
-        }
-    }
-
-    // Logout
-    logout() {
-        this.currentUser = null;
-        localStorage.removeItem('currentUser');
-        this.showLogin();
-        this.showNotification('Você saiu da sua conta', 'info');
     }
 
     // Atualização da Interface do Usuário
@@ -629,32 +928,7 @@ class FinancialManager {
         }).join('');
     }
 
-    // CRUD - Receitas
-    salvarReceita(e) {
-        if (e) e.preventDefault();
-        
-        const id = document.getElementById('receitaId')?.value;
-        const receita = {
-            descricao: document.getElementById('receitaDescricao')?.value || '',
-            valor: parseFloat(document.getElementById('receitaValor')?.value) || 0,
-            categoria: document.getElementById('receitaCategoria')?.value || '',
-            data: document.getElementById('receitaData')?.value || new Date().toISOString().split('T')[0]
-        };
-        
-        if (!this.currentUser.receitas) this.currentUser.receitas = [];
-        
-        if (id === '' || id === null) {
-            this.currentUser.receitas.push(receita);
-        } else {
-            this.currentUser.receitas[id] = receita;
-        }
-        
-        this.saveCurrentUser();
-        this.fecharModal('modalReceita');
-        this.updateDashboard();
-        this.showNotification('Receita salva com sucesso!', 'success');
-    }
-
+    // CRUD - Métodos de edição e exclusão (mantidos sem alterações)
     editarReceita(index) {
         this.abrirModalReceita(index);
     }
@@ -666,32 +940,6 @@ class FinancialManager {
             this.updateDashboard();
             this.showNotification('Receita excluída com sucesso!', 'success');
         }
-    }
-
-    // CRUD - Despesas
-    salvarDespesa(e) {
-        if (e) e.preventDefault();
-        
-        const id = document.getElementById('despesaId')?.value;
-        const despesa = {
-            descricao: document.getElementById('despesaDescricao')?.value || '',
-            valor: parseFloat(document.getElementById('despesaValor')?.value) || 0,
-            categoria: document.getElementById('despesaCategoria')?.value || '',
-            data: document.getElementById('despesaData')?.value || new Date().toISOString().split('T')[0]
-        };
-        
-        if (!this.currentUser.despesas) this.currentUser.despesas = [];
-        
-        if (id === '' || id === null) {
-            this.currentUser.despesas.push(despesa);
-        } else {
-            this.currentUser.despesas[id] = despesa;
-        }
-        
-        this.saveCurrentUser();
-        this.fecharModal('modalDespesa');
-        this.updateDashboard();
-        this.showNotification('Despesa salva com sucesso!', 'success');
     }
 
     editarDespesa(index) {
@@ -707,33 +955,6 @@ class FinancialManager {
         }
     }
 
-    // CRUD - Investimentos
-    salvarInvestimento(e) {
-        if (e) e.preventDefault();
-        
-        const id = document.getElementById('investimentoId')?.value;
-        const investimento = {
-            descricao: document.getElementById('investimentoDescricao')?.value || '',
-            valor: parseFloat(document.getElementById('investimentoValor')?.value) || 0,
-            tipo: document.getElementById('investimentoTipo')?.value || '',
-            rentabilidade: document.getElementById('investimentoRentabilidade')?.value ? parseFloat(document.getElementById('investimentoRentabilidade')?.value) : null,
-            data: document.getElementById('investimentoData')?.value || new Date().toISOString().split('T')[0]
-        };
-        
-        if (!this.currentUser.investimentos) this.currentUser.investimentos = [];
-        
-        if (id === '' || id === null) {
-            this.currentUser.investimentos.push(investimento);
-        } else {
-            this.currentUser.investimentos[id] = investimento;
-        }
-        
-        this.saveCurrentUser();
-        this.fecharModal('modalInvestimento');
-        this.updateDashboard();
-        this.showNotification('Investimento salvo com sucesso!', 'success');
-    }
-
     editarInvestimento(index) {
         this.abrirModalInvestimento(index);
     }
@@ -745,34 +966,6 @@ class FinancialManager {
             this.updateDashboard();
             this.showNotification('Investimento excluído com sucesso!', 'success');
         }
-    }
-
-    // CRUD - Metas
-    salvarMeta(e) {
-        if (e) e.preventDefault();
-        
-        const id = document.getElementById('metaId')?.value;
-        const meta = {
-            descricao: document.getElementById('metaDescricao')?.value || '',
-            valor: parseFloat(document.getElementById('metaValor')?.value) || 0,
-            data: document.getElementById('metaData')?.value || '',
-            progresso: 0
-        };
-        
-        if (!this.currentUser.metas) this.currentUser.metas = [];
-        
-        if (id === '' || id === null) {
-            this.currentUser.metas.push(meta);
-        } else {
-            // Manter progresso ao editar
-            meta.progresso = this.currentUser.metas[id].progresso || 0;
-            this.currentUser.metas[id] = meta;
-        }
-        
-        this.saveCurrentUser();
-        this.fecharModal('modalMeta');
-        this.atualizarTabelaMetas();
-        this.showNotification('Meta salva com sucesso!', 'success');
     }
 
     editarMeta(index) {
@@ -806,7 +999,7 @@ class FinancialManager {
         }
     }
 
-    // Modais
+    // Modais (mantidos sem alterações)
     abrirModalReceita(editIndex = null) {
         const modal = document.getElementById('modalReceita');
         const form = document.getElementById('formReceita');
@@ -1067,17 +1260,6 @@ class FinancialManager {
         localStorage.setItem('users', JSON.stringify(this.users));
     }
 
-    saveCurrentUser() {
-        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-        
-        // Atualiza também na lista de usuários
-        const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
-        if (userIndex !== -1) {
-            this.users[userIndex] = this.currentUser;
-            this.saveUsers();
-        }
-    }
-
     // Configurações
     loadUserSettings() {
         const savedSettings = localStorage.getItem('userSettings');
@@ -1104,6 +1286,16 @@ class FinancialManager {
         this.saveUserSettings();
         this.applyUserSettings();
     }
+}
+
+// ✅ FUNÇÃO DE DEBUG DO FIREBASE
+function checkFirebaseStatus() {
+    console.log('=== 🔥 STATUS DO FIREBASE ===');
+    console.log('Disponível:', window.firebaseAvailable);
+    console.log('Auth:', window.auth ? '✅' : '❌');
+    console.log('Firestore:', window.db ? '✅' : '❌');
+    console.log('Usuário atual:', auth?.currentUser?.email || 'Nenhum');
+    console.log('=============================');
 }
 
 // Funções Globais
@@ -1243,5 +1435,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         console.log("Financial Manager inicializado com sucesso");
+        
+        // Debug do Firebase
+        setTimeout(() => {
+            checkFirebaseStatus();
+        }, 2000);
+        
     }, 100);
 });
