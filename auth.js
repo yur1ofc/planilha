@@ -4,13 +4,14 @@ class AuthSystem {
         this.user = null;
         this.isLoading = false;
         this.firebaseAvailable = window.firebaseAvailable || false;
+        this.auth = window.auth;
+        this.db = window.db;
         this.init();
     }
 
     init() {
-        console.log("Iniciando sistema de autenticação...");
+        console.log("🚀 Iniciando sistema de autenticação...");
         
-        // Verificar se Firebase está disponível
         if (this.firebaseAvailable) {
             console.log("🔥 Modo Firebase ativo");
             this.setupFirebaseAuth();
@@ -22,48 +23,51 @@ class AuthSystem {
 
     setupFirebaseAuth() {
         // Observador de estado de autenticação
-        auth.onAuthStateChanged((user) => {
+        this.auth.onAuthStateChanged(async (user) => {
             if (user) {
                 console.log("👤 Usuário Firebase autenticado:", user.email);
-                this.user = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName,
-                    photoURL: user.photoURL
-                };
-                this.loadUserDataFromFirestore(user.uid);
+                await this.handleUserAuthenticated(user);
             } else {
                 console.log("🚪 Nenhum usuário autenticado no Firebase");
                 this.user = null;
-                this.showLogin();
+                this.showLoginScreen();
             }
         });
     }
 
-    setupLocalAuth() {
-        // Verificar autenticação local
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            console.log("👤 Usuário encontrado no localStorage");
-            this.user = JSON.parse(savedUser);
+    async handleUserAuthenticated(firebaseUser) {
+        try {
+            this.user = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL
+            };
+            
+            await this.loadUserDataFromFirestore(firebaseUser.uid);
+            
+        } catch (error) {
+            console.error("❌ Erro ao processar usuário autenticado:", error);
+            this.showLoginScreen();
         }
     }
 
     async loadUserDataFromFirestore(uid) {
         try {
-            const userDoc = await db.collection('users').doc(uid).get();
+            const userDoc = await this.db.collection('users').doc(uid).get();
+            
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 this.user = { ...this.user, ...userData };
                 console.log("📊 Dados do usuário carregados do Firestore");
-                this.showApp();
+                this.showAppScreen();
             } else {
-                console.log("📝 Usuário não encontrado no Firestore - criando...");
+                console.log("📝 Usuário não encontrado no Firestore");
                 await this.createUserInFirestore(uid);
             }
         } catch (error) {
             console.error("❌ Erro ao carregar dados do Firestore:", error);
-            this.showApp(); // Mostrar app mesmo com erro
+            this.showAppScreen(); // Mostrar app mesmo com erro
         }
     }
 
@@ -83,14 +87,26 @@ class AuthSystem {
                 }
             };
             
-            await db.collection('users').doc(uid).set(userData);
+            await this.db.collection('users').doc(uid).set(userData);
+            this.user = { ...this.user, ...userData };
             console.log("✅ Usuário criado no Firestore");
+            this.showAppScreen();
         } catch (error) {
             console.error("❌ Erro ao criar usuário no Firestore:", error);
+            this.showAppScreen();
         }
     }
 
-    // 🔐 REGISTRO COM FIREBASE
+    setupLocalAuth() {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            console.log("👤 Usuário encontrado no localStorage");
+            this.user = JSON.parse(savedUser);
+            this.showAppScreen();
+        }
+    }
+
+    // 🔐 REGISTRO
     async register(userData) {
         if (this.firebaseAvailable) {
             return await this.registerWithFirebase(userData);
@@ -104,7 +120,7 @@ class AuthSystem {
             console.log("📝 Tentando registrar com Firebase...");
             
             // Criar usuário no Firebase Auth
-            const userCredential = await auth.createUserWithEmailAndPassword(
+            const userCredential = await this.auth.createUserWithEmailAndPassword(
                 userData.email, 
                 userData.password
             );
@@ -116,8 +132,8 @@ class AuthSystem {
                 displayName: userData.nickname || userData.name
             });
 
-            // Criar documento no Firestore
-            await db.collection('users').doc(user.uid).set({
+            // Preparar dados para Firestore
+            const firestoreUserData = {
                 name: userData.name,
                 nickname: userData.nickname,
                 email: userData.email,
@@ -131,10 +147,20 @@ class AuthSystem {
                     theme: 'light',
                     currency: 'BRL'
                 }
-            });
+            };
+
+            // Criar documento no Firestore
+            await this.db.collection('users').doc(user.uid).set(firestoreUserData);
 
             console.log("✅ Usuário registrado com sucesso no Firebase");
-            return { success: true, user: user };
+            
+            return { 
+                success: true, 
+                user: {
+                    id: user.uid,
+                    ...firestoreUserData
+                }
+            };
 
         } catch (error) {
             console.error("❌ Erro no registro Firebase:", error);
@@ -147,7 +173,6 @@ class AuthSystem {
 
     registerLocal(userData) {
         try {
-            // Código existente para modo offline
             const users = JSON.parse(localStorage.getItem('users')) || [];
             
             if (users.find(user => user.email === userData.email)) {
@@ -179,7 +204,7 @@ class AuthSystem {
         }
     }
 
-    // 🔑 LOGIN COM FIREBASE
+    // 🔑 LOGIN
     async login(email, password) {
         if (this.firebaseAvailable) {
             return await this.loginWithFirebase(email, password);
@@ -192,7 +217,7 @@ class AuthSystem {
         try {
             console.log("🔑 Tentando login com Firebase...");
             
-            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
             
             console.log("✅ Login Firebase bem-sucedido:", user.email);
@@ -229,12 +254,12 @@ class AuthSystem {
             console.log("🚪 Saindo da conta...");
             
             if (this.firebaseAvailable) {
-                await auth.signOut();
+                await this.auth.signOut();
             }
             
             this.user = null;
             localStorage.removeItem('currentUser');
-            window.location.reload();
+            this.showLoginScreen();
             
         } catch (error) {
             console.error('❌ Erro ao sair:', error);
@@ -261,7 +286,7 @@ class AuthSystem {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    showLogin() {
+    showLoginScreen() {
         const loginScreen = document.getElementById('loginScreen');
         const appContainer = document.getElementById('appContainer');
         
@@ -269,12 +294,17 @@ class AuthSystem {
         if (appContainer) appContainer.classList.add('hidden');
     }
 
-    showApp() {
+    showAppScreen() {
         const loginScreen = document.getElementById('loginScreen');
         const appContainer = document.getElementById('appContainer');
         
         if (loginScreen) loginScreen.classList.add('hidden');
         if (appContainer) appContainer.classList.remove('hidden');
+        
+        // Disparar evento para o FinancialManager
+        if (window.financialManager && this.user) {
+            window.financialManager.handleAuthSuccess(this.user);
+        }
     }
 }
 
