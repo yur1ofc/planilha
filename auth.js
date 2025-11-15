@@ -27,12 +27,15 @@ class AuthSystem {
     }
 
     async sair() {
-    try {
-        console.log("Saindo da conta...");
-        this.user = null;
-        localStorage.removeItem('currentUser'); // <-- ADICIONAR
-    } catch (error) {
-        console.error('Erro ao sair:', error);
+        try {
+            console.log("Saindo da conta...");
+            this.user = null;
+            localStorage.removeItem('currentUser');
+            // Redirecionar para a tela de login
+            window.location.reload();
+        } catch (error) {
+            console.error('Erro ao sair:', error);
+        }
     }
 }
 
@@ -46,6 +49,10 @@ document.addEventListener('DOMContentLoaded', function() {
 window.sair = function() {
     if (window.financialManager) {
         window.financialManager.logout();
+    } else if (window.authSystem) {
+        window.authSystem.sair();
     }
 };
 
+// Alias para logout
+window.logout = window.sair;
