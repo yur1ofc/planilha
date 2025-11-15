@@ -4,14 +4,29 @@ class FinancialManager {
         this.currentUser = null;
         this.users = JSON.parse(localStorage.getItem('users')) || [];
         this.userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
+        this.firebaseAvailable = false;
         this.init();
     }
 
-    init() {
+    async init() {
         console.log("Iniciando Financial Manager...");
+        await this.checkFirebase();
         this.setupEventListeners();
         this.loadUserSettings();
         this.checkAuthentication();
+    }
+
+    async checkFirebase() {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                this.firebaseAvailable = true;
+                console.log("Firebase disponível");
+            } else {
+                console.log("Firebase não disponível - Modo offline");
+            }
+        } catch (error) {
+            console.log("Erro ao verificar Firebase:", error);
+        }
     }
 
     setupEventListeners() {
@@ -58,6 +73,20 @@ class FinancialManager {
                 }
             });
         });
+
+        // Validação em tempo real para confirmação de senha
+        const registerPassword = document.getElementById('registerPassword');
+        const registerConfirmPassword = document.getElementById('registerConfirmPassword');
+
+        if (registerPassword && registerConfirmPassword) {
+            registerConfirmPassword.addEventListener('input', () => {
+                if (registerPassword.value !== registerConfirmPassword.value) {
+                    registerConfirmPassword.style.borderColor = 'var(--danger-color)';
+                } else {
+                    registerConfirmPassword.style.borderColor = 'var(--success-color)';
+                }
+            });
+        }
     }
 
     // Sistema de Autenticação
@@ -291,7 +320,7 @@ class FinancialManager {
             item.classList.remove('active');
         });
         
-        const sidebarItem = document.querySelector(`[onclick="showDashboardSection('${section}')"]`);
+        const sidebarItem = document.querySelector(`.sidebar-item[onclick="showDashboardSection('${section}')"]`);
         if (sidebarItem) {
             sidebarItem.classList.add('active');
         }
@@ -991,9 +1020,11 @@ class FinancialManager {
     formatarData(dataString) {
         if (!dataString) return '-';
         try {
-            const data = new Date(dataString);
+            // Corrige o formato da data para o padrão brasileiro
+            const data = new Date(dataString + 'T00:00:00'); // Adiciona horário para evitar problemas de fuso
             return data.toLocaleDateString('pt-BR');
         } catch (e) {
+            console.error('Erro ao formatar data:', e);
             return '-';
         }
     }
@@ -1197,14 +1228,20 @@ function gerarRelatorioPDF(tipo = 'completo') {
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Página carregada - Iniciando configuração...");
-    financialManager = new FinancialManager();
     
-    // Configurar data padrão para hoje nos modais
-    const hoje = new Date().toISOString().split('T')[0];
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach(input => {
-        if (!input.value) {
-            input.value = hoje;
-        }
-    });
+    // Aguardar um pouco para garantir que tudo está carregado
+    setTimeout(() => {
+        financialManager = new FinancialManager();
+        
+        // Configurar data padrão para hoje nos modais
+        const hoje = new Date().toISOString().split('T')[0];
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        dateInputs.forEach(input => {
+            if (!input.value) {
+                input.value = hoje;
+            }
+        });
+        
+        console.log("Financial Manager inicializado com sucesso");
+    }, 100);
 });
