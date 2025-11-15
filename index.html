@@ -50,6 +50,9 @@
                 <div class="login-links">
                     <a href="#" onclick="showForgotPassword()">Esqueci minha senha</a>
                 </div>
+                <div class="form-group">
+    <label for="loginPassword">Senha</label>
+    <input type="password" id="loginPassword" required placeholder="Sua senha" autocomplete="current-password">
             </form>
 
             <!-- Formulário de Cadastro -->
@@ -58,6 +61,15 @@
                     <label for="registerName">Nome completo</label>
                     <input type="text" id="registerName" required placeholder="Seu nome completo">
                 </div>
+                <div class="form-group">
+    <label for="registerPassword">Senha</label>
+    <input type="password" id="registerPassword" required placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password">
+</div>
+
+<div class="form-group">
+    <label for="registerConfirmPassword">Confirmar senha</label>
+    <input type="password" id="registerConfirmPassword" required placeholder="Digite novamente sua senha" autocomplete="new-password">
+</div>
 
                 <div class="form-group">
                     <label for="registerNickname">Apelido/Nome de exibição</label>
@@ -595,3 +607,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+
