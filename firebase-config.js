@@ -8,28 +8,34 @@ const firebaseConfig = {
     appId: "1:1075601741367:web:d78e0a3f769d21109b91b2"
 };
 
-// Inicialização condicional do Firebase
+// Inicialização do Firebase
+let firebaseApp;
+let auth;
+let db;
+let firebaseAvailable = false;
+
 try {
     if (typeof firebase !== 'undefined') {
-        if (!firebase.apps.length) {
-            const app = firebase.initializeApp(firebaseConfig);
-            console.log("Firebase inicializado com sucesso");
-            
-            const auth = firebase.auth();
-            const db = firebase.firestore();
-            
-            console.log("Firebase Auth inicializado");
-            console.log("Firebase Firestore inicializado");
-            
-            window.firebase = firebase;
-            window.auth = auth;
-            window.db = db;
-        } else {
-            console.log("Firebase já inicializado");
-        }
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        firebaseAvailable = true;
+        
+        console.log("✅ Firebase inicializado com sucesso");
+        console.log("✅ Firebase Auth disponível");
+        console.log("✅ Firestore disponível");
+        
+        // Disponibilizar globalmente
+        window.firebase = firebase;
+        window.auth = auth;
+        window.db = db;
+        window.firebaseAvailable = firebaseAvailable;
+        
     } else {
-        console.log("Firebase não disponível - Modo offline ativado");
+        console.log("❌ Firebase não disponível");
+        window.firebaseAvailable = false;
     }
 } catch (error) {
-    console.log("Firebase não disponível - Modo offline ativado", error);
+    console.log("❌ Erro ao inicializar Firebase:", error);
+    window.firebaseAvailable = false;
 }
